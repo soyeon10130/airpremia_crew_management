@@ -38,7 +38,6 @@ label.fl{font-size:12px;color:#666;display:block;margin-bottom:3px}
 <div id="app" style="max-width:860px;margin:0 auto;padding:14px 0"></div>
 
 <script type="module">
-// ========================= Firebase 연결 =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -52,6 +51,45 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ========================= 사진 영구 저장 헬퍼 =========================
+// window.storage (Artifact persistent storage) 사용
+// 키 형식: "photo:사번" → base64 문자열
+async function savePhoto(id, dataUrl) {
+  try {
+    await window.storage.set(`photo:${id}`, dataUrl);
+  } catch(e) {
+    console.warn("사진 저장 실패:", e);
+  }
+}
+
+async function loadAllPhotos() {
+  try {
+    const result = await window.storage.list("photo:");
+    const photos = {};
+    if (result && result.keys && result.keys.length > 0) {
+      await Promise.all(result.keys.map(async key => {
+        try {
+          const r = await window.storage.get(key);
+          if (r && r.value) {
+            const id = key.replace("photo:", "");
+            photos[id] = r.value;
+          }
+        } catch(e) {}
+      }));
+    }
+    return photos;
+  } catch(e) {
+    console.warn("사진 로딩 실패:", e);
+    return {};
+  }
+}
+
+async function deletePhoto(id) {
+  try {
+    await window.storage.delete(`photo:${id}`);
+  } catch(e) {}
+}
 
 // ========================= 역할 메타 =========================
 const ROLE_META={
@@ -256,7 +294,7 @@ const FO_DATA=[
 let state={
   captains:[...CAP_DATA],
   fos:[...FO_DATA],
-  photos:{},
+  photos:{},          // 메모리 캐시 (영구 저장은 window.storage)
   tab:"기장",
   search:"",
   filterRole:"전체",
@@ -266,7 +304,15 @@ let state={
   confirmPerson:null,
   promotePerson:null,
   formPhotoPreview:null,
+  photosLoaded:false,
 };
+
+// ========================= 앱 초기화: 저장된 사진 모두 불러오기 =========================
+async function initPhotos() {
+  state.photos = await loadAllPhotos();
+  state.photosLoaded = true;
+  render();
+}
 
 // ========================= 유틸 =========================
 let toastTimer=null;
@@ -433,15 +479,20 @@ function render(){
   const roleOpts=["전체",...availRoles].map(r=>`<option value="${r}"${state.filterRole===r?" selected":""}>${r}</option>`).join("");
 
   let modalHtml="";
-  if(state.modal==="form")      modalHtml=mkFormModal();
+  if(state.modal==="form")         modalHtml=mkFormModal();
   else if(state.modal==="delete")  modalHtml=mkConfirmModal(state.confirmPerson,"delete");
   else if(state.modal==="promote") modalHtml=mkConfirmModal(state.promotePerson,"promote");
+
+  const loadingBanner = !state.photosLoaded
+    ? `<div style="text-align:center;padding:8px;font-size:12px;color:#999;background:#fffbe6;border-radius:8px;margin-bottom:12px">📂 저장된 사진 불러오는 중...</div>`
+    : "";
 
   document.getElementById("app").innerHTML=`
     <div style="margin-bottom:16px">
       <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">✈ 에어프레미아 운항승무원 명단 관리</div>
-      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력</div>
+      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력 · <strong style="color:#27500a">사진 자동 저장됨</strong></div>
     </div>
+    ${loadingBanner}
     ${mkStats()}
     <div class="grid-controls">
       <div class="tabs">
@@ -495,25 +546,36 @@ function pickPhoto(id){
   inp.onchange=e=>{
     const file=e.target.files[0];if(!file)return;
     const r=new FileReader();
-    r.onload=ev=>{state.photos[id]=ev.target.result;render();showToast("사진이 등록되었습니다.");};
+    r.onload=async ev=>{
+      const dataUrl=ev.target.result;
+      state.photos[id]=dataUrl;
+      await savePhoto(id, dataUrl);   // ← 영구 저장
+      render();
+      showToast("사진이 저장되었습니다.");
+    };
     r.readAsDataURL(file);
   };
   inp.click();
 }
 
-function handleBulkPhotos(inp){
+async function handleBulkPhotos(inp){
   const files=Array.from(inp.files);
   let done=0;
-  files.forEach(file=>{
+  const saves=files.map(file=>new Promise(resolve=>{
     const base=file.name.replace(/\.[^.]+$/,"");
     const r=new FileReader();
-    r.onload=ev=>{
-      state.photos[base]=ev.target.result;
+    r.onload=async ev=>{
+      const dataUrl=ev.target.result;
+      state.photos[base]=dataUrl;
+      await savePhoto(base, dataUrl);  // ← 영구 저장
       done++;
-      if(done===files.length){render();showToast(`사진 ${done}장 등록 완료`);}
+      resolve();
     };
     r.readAsDataURL(file);
-  });
+  }));
+  await Promise.all(saves);
+  render();
+  showToast(`사진 ${done}장 저장 완료`);
   inp.value="";
 }
 
@@ -544,19 +606,21 @@ function openPromote(id){
   state.promotePerson=p;state.modal="promote";render();
 }
 
-// ========================= 핵심 수정: async + Firebase 통합 =========================
 async function saveForm(){
   const f=state.form;
   if(!f.name.trim()||!f.id.trim()){showToast("성명과 사번은 필수입니다.","err");return;}
-  if(state.formPhotoPreview)state.photos[f.id]=state.formPhotoPreview;
+
+  // 폼에서 사진 선택했으면 영구 저장
+  if(state.formPhotoPreview){
+    state.photos[f.id]=state.formPhotoPreview;
+    await savePhoto(f.id, state.formPhotoPreview);
+  }
 
   if(state.editId){
-    // 수정
     if(state.tab==="기장") state.captains=state.captains.map(p=>p.id===state.editId?{...f}:p);
     else                   state.fos=state.fos.map(p=>p.id===state.editId?{...f}:p);
     showToast(`${f.name} 정보가 수정되었습니다.`);
   } else {
-    // 신규
     if([...state.captains,...state.fos].find(p=>p.id===f.id)){
       showToast("이미 존재하는 사번입니다.","err");return;
     }
@@ -564,13 +628,8 @@ async function saveForm(){
     else                   state.fos=[...state.fos,{...f}];
     showToast(`${f.name} 승무원이 추가되었습니다.`);
 
-    // Firebase 저장 (함수 내부에 통합 — 분리된 코드블록 오류 수정)
     try {
-      await addDoc(collection(db,"crew"),{
-        ...f,
-        createdAt: new Date()
-      });
-      console.log("Firebase 저장 완료");
+      await addDoc(collection(db,"crew"),{...f, createdAt: new Date()});
     } catch(err){
       console.error("Firebase 저장 실패:", err);
     }
@@ -585,6 +644,9 @@ function doDelete(id){
   if(!p)return;
   if(state.tab==="기장") state.captains=state.captains.filter(x=>x.id!==id);
   else                   state.fos=state.fos.filter(x=>x.id!==id);
+  // 사진도 삭제
+  delete state.photos[id];
+  deletePhoto(id);
   showToast(`${p.name} 승무원이 퇴사 처리되었습니다.`,"warn");
   state.modal=null;state.confirmPerson=null;render();
 }
@@ -643,7 +705,7 @@ ${photoCell(p)}
   w.onload=()=>{setTimeout(()=>w.print(),300);};
 }
 
-// ========================= 전역 노출 (onclick 핸들러용) =========================
+// ========================= 전역 노출 =========================
 window.setTab=setTab;
 window.closeModal=closeModal;
 window.openAdd=openAdd;
@@ -658,7 +720,9 @@ window.handleBulkPhotos=handleBulkPhotos;
 window.state=state;
 window.render=render;
 
-render();
+// 앱 시작: 사진 먼저 로딩 후 렌더
+render(); // 빈 상태로 일단 표시
+initPhotos(); // 비동기로 사진 불러와서 다시 렌더
 </script>
 </body>
 </html>
