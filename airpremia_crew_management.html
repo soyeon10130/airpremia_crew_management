@@ -1,0 +1,589 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#111;background:transparent}
+input,select,button{font-family:inherit;font-size:13px}
+input[type=text],select{padding:7px 10px;border:0.5px solid #ccc;border-radius:8px;width:100%;outline:none;background:#fff;color:#111}
+input[type=text]:focus,select:focus{border-color:#378add}
+button{cursor:pointer;border-radius:8px;border:0.5px solid #ccc;padding:6px 14px;background:#fff;color:#333}
+button:hover{background:#f5f5f5}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;white-space:nowrap}
+.card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:13px 13px 11px;display:flex;flex-direction:column;gap:0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200}
+.modal{background:#fff;border-radius:14px;padding:24px 26px;width:410px;max-height:90vh;overflow-y:auto}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:300;white-space:nowrap;pointer-events:none}
+.photo-wrap{position:relative;cursor:pointer;flex-shrink:0}
+.photo-wrap:hover .photo-overlay{opacity:1}
+.photo-overlay{position:absolute;inset:0;border-radius:7px;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-size:18px}
+.stat-card{border-radius:10px;padding:10px 12px}
+label.fl{font-size:12px;color:#666;display:block;margin-bottom:3px}
+.grid-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:flex;border:0.5px solid #ccc;border-radius:8px;overflow:hidden}
+.tab{padding:7px 16px;font-size:13px;border:none;cursor:pointer;background:transparent;color:#666}
+.tab.active{background:#f0f0f0;color:#111;font-weight:500}
+.tab:first-child{border-right:0.5px solid #ccc}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding-top:9px;border-top:0.5px solid #eee;margin-bottom:10px}
+.info-label{font-size:10px;color:#999;margin-bottom:1px}
+.info-val{font-size:11px;color:#222}
+.actions{display:flex;gap:5px}
+.actions button{flex:1;font-size:11px;padding:5px 0;border-radius:6px}
+</style>
+
+<div id="app" style="max-width:860px;margin:0 auto;padding:14px 0"></div>
+
+<script>
+const ROLE_META={
+  "기장":           {bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
+  "훈련기장":       {bg:"#eaf3de",text:"#27500a",border:"#3b6d11"},
+  "기장승격훈련요원":{bg:"#faeeda",text:"#633806",border:"#854f0b"},
+  "부기장":         {bg:"#eeedfe",text:"#3c3489",border:"#534ab7"},
+  "수습부기장":     {bg:"#faece7",text:"#712b13",border:"#993c1d"},
+};
+
+const CAP_DATA=[
+  {id:"P190001",name:"임원길",  role:"기장",position:"기장/운항본부장",          joinDate:"2019.03.01",appointDate:"2021.06.07"},
+  {id:"P263010",name:"유우룡",  role:"기장",position:"기장/운항승무팀장/비행교관",joinDate:"2020.03.02",appointDate:"2021.04.29"},
+  {id:"P233022",name:"이석원",  role:"기장",position:"기장/운항표준팀장/위촉심사관",joinDate:"2023.03.02",appointDate:"2023.06.30"},
+  {id:"P233025",name:"정진수",  role:"기장",position:"기장/운항품질팀장",         joinDate:"2023.03.02",appointDate:"2023.07.28"},
+  {id:"P233024",name:"전승호",  role:"기장",position:"기장/운항훈련팀장/비행교관",joinDate:"2023.03.02",appointDate:"2023.06.16"},
+  {id:"P243007",name:"김훈B",   role:"기장",position:"기장/운항안전파트장",       joinDate:"2024.05.02",appointDate:"2024.09.13"},
+  {id:"P213011",name:"강달용",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2025.06.16"},
+  {id:"P243039",name:"강상진",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.06.13"},
+  {id:"P243002",name:"강성준",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.04"},
+  {id:"P243027",name:"강호준",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.03"},
+  {id:"P233011",name:"강흥건",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.07.24"},
+  {id:"P203008",name:"경진수",  role:"기장",position:"기장/위촉심사관",           joinDate:"2020.04.16",appointDate:"2020.09.25"},
+  {id:"P213001",name:"고희덕",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.26"},
+  {id:"P223006",name:"김경석",  role:"기장",position:"기장/운항승무1파트장",      joinDate:"2022.08.01",appointDate:"2023.03.03"},
+  {id:"P223005",name:"김경수",  role:"기장",position:"기장",joinDate:"2022.08.01",appointDate:"2023.04.07"},
+  {id:"P243041",name:"김남호",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.05.19"},
+  {id:"P203018",name:"김동섭",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.06.25"},
+  {id:"P213002",name:"김동환",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.09.16"},
+  {id:"P233033",name:"김선용",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.07.14"},
+  {id:"P243003",name:"김세훈",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.25"},
+  {id:"P243004",name:"김영길",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.09.20"},
+  {id:"P233012",name:"김영준",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.06.12"},
+  {id:"P203006",name:"김영필",  role:"기장",position:"기장/위촉심사관",           joinDate:"2020.03.02",appointDate:"2020.09.27"},
+  {id:"P263011",name:"김용식",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.25"},
+  {id:"P203015",name:"김은수",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.07.02"},
+  {id:"P243005",name:"김일관",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.30"},
+  {id:"P203012",name:"김지웅",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2021.10.29"},
+  {id:"P203022",name:"김진환",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.06.18"},
+  {id:"P243006",name:"김치윤",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.23"},
+  {id:"P233013",name:"김홍진",  role:"기장",position:"기장/비행교관",             joinDate:"2023.03.02",appointDate:"2023.05.22"},
+  {id:"P213003",name:"김훈",    role:"기장",position:"기장/위촉심사관",           joinDate:"2021.07.01",appointDate:"2022.07.08"},
+  {id:"P243042",name:"나종석",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.04.30"},
+  {id:"P233014",name:"남궁명",  role:"기장",position:"기장/비행교관",             joinDate:"2023.03.02",appointDate:"2023.08.11"},
+  {id:"P243028",name:"노영호",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.01.31"},
+  {id:"P213004",name:"박규태",  role:"기장",position:"기장/비행교관",             joinDate:"2021.07.01",appointDate:"2023.02.03"},
+  {id:"P233016",name:"박병열",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.08.16"},
+  {id:"P243029",name:"박양주",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.12"},
+  {id:"P213014",name:"박일호",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2025.07.04"},
+  {id:"P233017",name:"박준성",  role:"기장",position:"기장/비행교관",             joinDate:"2023.03.02",appointDate:"2023.06.28"},
+  {id:"P213005",name:"박형근",  role:"기장",position:"기장/비행교관",             joinDate:"2021.07.01",appointDate:"2022.09.30"},
+  {id:"P203007",name:"배총태",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2020.09.26"},
+  {id:"P263009",name:"서동철",  role:"기장",position:"기장/운항승무2파트장",      joinDate:"2023.03.02",appointDate:"2023.08.18"},
+  {id:"P203019",name:"서호균",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.07.17"},
+  {id:"P243030",name:"송다비라",role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.07"},
+  {id:"P243031",name:"송우익",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.18"},
+  {id:"P233019",name:"신경호",  role:"기장",position:"기장/비행교관",             joinDate:"2023.03.02",appointDate:"2023.07.07"},
+  {id:"P193002",name:"신동훈",  role:"기장",position:"기장",joinDate:"2019.09.02",appointDate:"2021.10.20"},
+  {id:"P233020",name:"신민철",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.07.31"},
+  {id:"P203004",name:"신지수",  role:"기장",position:"기장",joinDate:"2020.03.02",appointDate:"2021.06.09"},
+  {id:"P243043",name:"연정호",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2024.04.25"},
+  {id:"P203001",name:"위충석",  role:"기장",position:"기장",joinDate:"2020.02.03",appointDate:"2021.10.14"},
+  {id:"P223007",name:"유민상",  role:"기장",position:"기장/비행교관",             joinDate:"2022.08.01",appointDate:"2023.04.20"},
+  {id:"P263012",name:"윤세기",  role:"기장",position:"기장/비행교관",             joinDate:"2024.05.02",appointDate:"2024.09.09"},
+  {id:"P243020",name:"윤완석",  role:"기장",position:"기장",joinDate:"2024.07.01",appointDate:"2024.08.12"},
+  {id:"P223008",name:"윤태선",  role:"기장",position:"기장",joinDate:"2022.08.01",appointDate:"2023.03.27"},
+  {id:"P213006",name:"이동수",  role:"기장",position:"기장/비행교관",             joinDate:"2021.07.01",appointDate:"2022.12.13"},
+  {id:"P243032",name:"이병문",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.17"},
+  {id:"P203010",name:"이병욱",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2021.05.13"},
+  {id:"P243044",name:"이세찬",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.06.26"},
+  {id:"P233035",name:"이승현",  role:"기장",position:"기장/비행교관",             joinDate:"2023.05.02",appointDate:"2023.10.04"},
+  {id:"P193001",name:"이은상",  role:"기장",position:"기장",joinDate:"2019.07.01",appointDate:"2021.09.17"},
+  {id:"P233023",name:"이장헌",  role:"기장",position:"기장/비행교관",             joinDate:"2023.03.02",appointDate:"2023.06.19"},
+  {id:"P233036",name:"이재현",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.22"},
+  {id:"P243045",name:"이재형",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2024.12.27"},
+  {id:"P203002",name:"이중엽",  role:"기장",position:"기장/비행교관",             joinDate:"2020.02.03",appointDate:"2021.09.30"},
+  {id:"P243009",name:"이창훈",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.08"},
+  {id:"P243021",name:"이태권",  role:"기장",position:"기장",joinDate:"2024.07.01",appointDate:"2024.08.21"},
+  {id:"P243010",name:"이혁제",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.15"},
+  {id:"P243033",name:"임동헌",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.21"},
+  {id:"P243034",name:"임승곤",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.31"},
+  {id:"P233037",name:"임준호",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.20"},
+  {id:"P243046",name:"장재원",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.05.23"},
+  {id:"P243035",name:"전우태",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2024.04.02"},
+  {id:"P203011",name:"전지혁",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2022.02.23"},
+  {id:"P223009",name:"정권철",  role:"기장",position:"기장/비행교관",             joinDate:"2022.08.01",appointDate:"2023.03.31"},
+  {id:"P243022",name:"정남석",  role:"기장",position:"기장/비행교관",             joinDate:"2024.07.01",appointDate:"2024.08.23"},
+  {id:"P213007",name:"정재훈",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.23"},
+  {id:"P263013",name:"정호영",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.18"},
+  {id:"P213009",name:"정희중",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2023.01.28"},
+  {id:"P203009",name:"조성식",  role:"기장",position:"기장/위촉심사관",           joinDate:"2020.04.16",appointDate:"2020.09.27"},
+  {id:"P243047",name:"최봉근",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.01.03"},
+  {id:"P233026",name:"최상준",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.06.23"},
+  {id:"P213010",name:"한정권",  role:"기장",position:"기장/위촉심사관",           joinDate:"2021.07.01",appointDate:"2022.08.11"},
+  {id:"P263022",name:"김정성",  role:"훈련기장",position:"훈련기장",             joinDate:"2026.05.04",appointDate:""},
+  {id:"P263023",name:"이종근",  role:"훈련기장",position:"훈련기장",             joinDate:"2026.05.04",appointDate:""},
+  {id:"P263024",name:"장래향",  role:"훈련기장",position:"훈련기장",             joinDate:"2026.05.04",appointDate:""},
+];
+const FO_DATA=[
+  {id:"P223001",name:"최우진",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.05.16",appointDate:"2022.12.26"},
+  {id:"P223002",name:"김승재",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.05.16",appointDate:"2023.01.13"},
+  {id:"P223011",name:"장명근",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.08.01",appointDate:"2023.02.17"},
+  {id:"P223013",name:"홍진영",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.08.01",appointDate:"2023.02.24"},
+  {id:"P203020",name:"이장영",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2021.05.31"},
+  {id:"P203021",name:"이정훈",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2021.10.15"},
+  {id:"P203013",name:"김지호",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2022.03.11"},
+  {id:"P203014",name:"이상호",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2022.03.18"},
+  {id:"P213012",name:"김동욱",  role:"부기장",position:"부기장",joinDate:"2021.07.01",appointDate:"2022.07.01"},
+  {id:"P213013",name:"이승민",  role:"부기장",position:"부기장",joinDate:"2021.07.01",appointDate:"2022.07.22"},
+  {id:"P223004",name:"김효승",  role:"부기장",position:"부기장",joinDate:"2022.05.16",appointDate:"2022.12.28"},
+  {id:"P223003",name:"최재원",  role:"부기장",position:"부기장",joinDate:"2022.05.16",appointDate:"2023.01.11"},
+  {id:"P223012",name:"정상균",  role:"부기장",position:"부기장",joinDate:"2022.08.01",appointDate:"2023.03.06"},
+  {id:"P223010",name:"김병욱",  role:"부기장",position:"부기장",joinDate:"2022.08.01",appointDate:"2023.03.17"},
+  {id:"P233002",name:"박태을",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.12"},
+  {id:"P233003",name:"배기현",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.23"},
+  {id:"P233005",name:"이은철",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.10"},
+  {id:"P233006",name:"이준오",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.19"},
+  {id:"P233007",name:"이호석",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.17"},
+  {id:"P233010",name:"최우석",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.07.05"},
+  {id:"P233027",name:"구상회",  role:"부기장",position:"부기장",joinDate:"2023.03.02",appointDate:"2023.11.28"},
+  {id:"P233032",name:"홍인식",  role:"부기장",position:"부기장",joinDate:"2023.03.02",appointDate:"2023.12.24"},
+  {id:"P233038",name:"김나성",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.04.29"},
+  {id:"P233039",name:"김영석",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.16"},
+  {id:"P233040",name:"나종찬",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.02"},
+  {id:"P233041",name:"박준회",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.13"},
+  {id:"P233042",name:"소병규",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.05.19"},
+  {id:"P233043",name:"윤정훈",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.05.03"},
+  {id:"P233044",name:"이관호",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.04.06"},
+  {id:"P233045",name:"이하정",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.06.24"},
+  {id:"P233046",name:"정인보",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.03"},
+  {id:"P233047",name:"정진규",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.03"},
+  {id:"P233048",name:"정한솔",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.14"},
+  {id:"P233049",name:"허완",    role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.02.25"},
+  {id:"P243011",name:"김상연",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.26"},
+  {id:"P243012",name:"김현수",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.19"},
+  {id:"P243013",name:"문종태",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.12.07"},
+  {id:"P243014",name:"박성욱",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.10.30"},
+  {id:"P243015",name:"박영욱",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.06"},
+  {id:"P243016",name:"이상규",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.24"},
+  {id:"P243017",name:"이정곤",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.16"},
+  {id:"P243018",name:"조준상",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2025.04.10"},
+  {id:"P243019",name:"황성민",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.25"},
+  {id:"P243023",name:"김성훈B", role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.30"},
+  {id:"P243024",name:"이학현",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.17"},
+  {id:"P243025",name:"조석현",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.28"},
+  {id:"P243026",name:"한재훈",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.26"},
+  {id:"P243036",name:"윤지열",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.05.12"},
+  {id:"P243037",name:"최동찬",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.04.04"},
+  {id:"P243038",name:"최윤준",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.04.05"},
+  {id:"P243048",name:"박성진",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.22"},
+  {id:"P243049",name:"이재일",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.20"},
+  {id:"P243050",name:"이태호B", role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.25"},
+  {id:"P243051",name:"정범수",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.04.29"},
+  {id:"P243052",name:"최정웅",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.06.05"},
+  {id:"P604002",name:"조성진",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.04"},
+  {id:"P604105",name:"김윤현",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.15"},
+  {id:"P702330",name:"조병준",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.01"},
+  {id:"P702816",name:"정성원",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.08"},
+  {id:"P803303",name:"남성식",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.05.27"},
+  {id:"P803443",name:"김영욱",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.06"},
+  {id:"P803852",name:"심효영",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.17"},
+  {id:"P900076",name:"김동우B", role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.21"},
+  {id:"P900102",name:"손창우",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.18"},
+  {id:"P701851",name:"이정준",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.10"},
+  {id:"P253002",name:"김태현C", role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.10"},
+  {id:"P253003",name:"박의충",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.24"},
+  {id:"P253004",name:"이동건",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.29"},
+  {id:"P253005",name:"이보행",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.01"},
+  {id:"P253006",name:"이재봉",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.23"},
+  {id:"P253007",name:"임창훈",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.30"},
+  {id:"P253008",name:"홍경수",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.01"},
+  {id:"P253020",name:"현경원",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2025.12.25"},
+  {id:"P253011",name:"권기태",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.02"},
+  {id:"P253013",name:"김우창",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
+  {id:"P253014",name:"김정환",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.04"},
+  {id:"P253015",name:"안상진",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
+  {id:"P253017",name:"이민재",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.09"},
+  {id:"P253018",name:"장서연",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
+  {id:"P253019",name:"한현재",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
+  {id:"P263001",name:"김선우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263002",name:"김영걸",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263003",name:"김창균",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263004",name:"박성우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263005",name:"박의명",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263006",name:"배재욱",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263007",name:"채상원",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263008",name:"허노준",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
+  {id:"P263014",name:"김동일",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263015",name:"송승호",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263016",name:"송호섭",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263017",name:"신규철",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263018",name:"정현우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263019",name:"최경민",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263020",name:"최성원",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+  {id:"P263021",name:"한유경",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
+];
+
+let state={
+  captains:[...CAP_DATA],
+  fos:[...FO_DATA],
+  photos:{},
+  tab:"기장",
+  search:"",
+  filterRole:"전체",
+  modal:null,
+  form:{name:"",id:"",role:"부기장",position:"",joinDate:"",appointDate:""},
+  editId:null,
+  confirmPerson:null,
+  promotePerson:null,
+  formPhotoPreview:null,
+};
+
+let toastTimer=null;
+function showToast(msg,type="ok"){
+  clearTimeout(toastTimer);
+  const t=document.getElementById("toast");
+  if(!t)return;
+  t.textContent=msg;
+  t.style.display="block";
+  const styles={ok:{bg:"#eaf3de",color:"#27500a",border:"#3b6d11"},err:{bg:"#fcebeb",color:"#791f1f",border:"#e24b4a"},warn:{bg:"#faeeda",color:"#633806",border:"#854f0b"}};
+  const s=styles[type]||styles.ok;
+  Object.assign(t.style,{background:s.bg,color:s.color,border:`0.5px solid ${s.border}`});
+  toastTimer=setTimeout(()=>{t.style.display="none";},2800);
+}
+
+function today(){
+  const d=new Date();
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function mkBadge(role){
+  const m=ROLE_META[role]||ROLE_META["부기장"];
+  return `<span class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${role}</span>`;
+}
+
+function mkAvatar(name,role,size=76){
+  const m=ROLE_META[role]||ROLE_META["부기장"];
+  const ch=name?name[0]:"?";
+  return `<div style="width:${size}px;height:${size}px;border-radius:8px;background:${m.bg};border:1.5px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.38)}px;font-weight:500;color:${m.text};flex-shrink:0;user-select:none">${ch}</div>`;
+}
+
+function mkPhotoCell(p,size=76){
+  const src=state.photos[p.id];
+  const inner=src
+    ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block"/>`
+    :mkAvatar(p.name,p.role,size);
+  return `<div class="photo-wrap" data-photoid="${p.id}" style="width:${size}px;height:${size}px" title="클릭하여 사진 변경">
+    ${inner}
+    <div class="photo-overlay">📷</div>
+  </div>`;
+}
+
+function mkCard(p){
+  const canPromote=state.tab==="부기장"&&(p.role==="부기장"||p.role==="기장승격훈련요원");
+  const posExtra=p.position&&p.position!==p.role?`<div style="font-size:10px;color:#888;margin-top:3px;line-height:1.4">${p.position}</div>`:"";
+  return `<div class="card">
+    <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:10px">
+      ${mkPhotoCell(p,74)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500;color:#111;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+        <div style="font-family:monospace;font-size:11px;color:#aaa;margin-bottom:5px">${p.id}</div>
+        ${mkBadge(p.role)}
+        ${posExtra}
+      </div>
+    </div>
+    <div class="info-grid">
+      <div><div class="info-label">입사년월</div><div class="info-val">${p.joinDate}</div></div>
+      <div><div class="info-label">임명일</div><div class="info-val">${p.appointDate||"-"}</div></div>
+    </div>
+    <div class="actions">
+      <button onclick="openEdit('${p.id}')">수정</button>
+      ${canPromote?`<button onclick="openPromote('${p.id}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5">기장 승격</button>`:""}
+      <button onclick="openDelete('${p.id}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a">퇴사</button>
+    </div>
+  </div>`;
+}
+
+function mkStats(){
+  const cnt={};
+  Object.keys(ROLE_META).forEach(r=>cnt[r]=0);
+  [...state.captains,...state.fos].forEach(p=>{if(cnt[p.role]!==undefined)cnt[p.role]++;});
+  return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px">
+    ${Object.entries(ROLE_META).map(([r,m])=>`
+      <div class="stat-card" style="background:${m.bg};border:0.5px solid ${m.border}">
+        <div style="font-size:10px;color:${m.text};font-weight:500;margin-bottom:3px">${r}</div>
+        <div style="font-size:22px;font-weight:500;color:${m.text}">${cnt[r]}</div>
+      </div>`).join("")}
+  </div>`;
+}
+
+function getList(){return state.tab==="기장"?state.captains:state.fos;}
+function getAvailRoles(){return state.tab==="기장"?["기장","훈련기장"]:["기장승격훈련요원","부기장","수습부기장"];}
+
+function filtered(){
+  const s=state.search.trim();
+  return getList().filter(p=>{
+    const ms=!s||p.name.includes(s)||p.id.includes(s)||p.position.includes(s);
+    const mr=state.filterRole==="전체"||p.role===state.filterRole;
+    return ms&&mr;
+  });
+}
+
+function mkFormModal(){
+  const isEdit=!!state.editId;
+  const f=state.form;
+  const roles=getAvailRoles();
+  const photoHtml=state.formPhotoPreview
+    ?`<img src="${state.formPhotoPreview}" style="width:72px;height:80px;object-fit:cover;border-radius:8px;display:block"/>`
+    :`<div style="width:72px;height:80px;border-radius:8px;background:#f5f5f5;border:1.5px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:22px">📷</div>`;
+  return `<div class="overlay" id="modal-overlay">
+    <div class="modal">
+      <div style="font-size:16px;font-weight:500;margin-bottom:16px">${isEdit?"승무원 정보 수정":"신규 입사 등록"}</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div style="cursor:pointer" id="modal-photo-btn" title="사진 업로드">${photoHtml}</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;margin-bottom:3px">인물 사진</div>
+          <div style="font-size:11px;color:#999;line-height:1.5">클릭하여 업로드<br>자동으로 동일 크기 적용</div>
+        </div>
+      </div>
+      <input type="file" id="modal-photo-file" accept="image/*" style="display:none"/>
+      <div style="display:grid;gap:10px">
+        ${[["성명 *","name","홍길동"],["사번 *","id","P253099"],["입사년월 *","joinDate","2026.01.05"],["임명일","appointDate","2026.06.01"],["직위/직책 세부","position","기장/비행교관"]].map(([lbl,key,ph])=>`
+          <div>
+            <label class="fl">${lbl}</label>
+            <input type="text" id="ff-${key}" value="${f[key]||""}" placeholder="${ph}" style="width:100%;box-sizing:border-box"/>
+          </div>`).join("")}
+        <div>
+          <label class="fl">직위 *</label>
+          <select id="ff-role" style="width:100%">
+            ${roles.map(r=>`<option value="${r}"${f.role===r?" selected":""}>${r}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+        <button onclick="closeModal()">취소</button>
+        <button onclick="saveForm()" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">저장</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mkConfirmModal(person,type){
+  if(!person)return"";
+  if(type==="delete"){
+    return `<div class="overlay"><div class="modal" style="width:340px">
+      <div style="font-size:16px;font-weight:500;margin-bottom:10px">퇴사 처리 확인</div>
+      <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${person.name}</strong> (${person.id})을 퇴사 처리하시겠습니까?</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeModal()">취소</button>
+        <button onclick="doDelete('${person.id}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a;font-weight:500">퇴사 처리</button>
+      </div>
+    </div></div>`;
+  }
+  return `<div class="overlay"><div class="modal" style="width:360px">
+    <div style="font-size:16px;font-weight:500;margin-bottom:10px">기장 승격 확인</div>
+    <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${person.name}</strong> 부기장을 기장으로 승격하시겠습니까?<br><span style="font-size:12px;color:#aaa">임명일: ${today()} 자동 기입</span></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeModal()">취소</button>
+      <button onclick="doPromote('${person.id}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">승격 확정</button>
+    </div>
+  </div></div>`;
+}
+
+function render(){
+  const list=filtered();
+  const availRoles=getAvailRoles();
+  const roleOpts=["전체",...availRoles].map(r=>`<option value="${r}"${state.filterRole===r?" selected":""}>${r}</option>`).join("");
+
+  let modalHtml="";
+  if(state.modal==="form")modalHtml=mkFormModal();
+  else if(state.modal==="delete")modalHtml=mkConfirmModal(state.confirmPerson,"delete");
+  else if(state.modal==="promote")modalHtml=mkConfirmModal(state.promotePerson,"promote");
+
+  document.getElementById("app").innerHTML=`
+    <div style="margin-bottom:16px">
+      <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">✈ 에어프레미아 운항승무원 명단 관리</div>
+      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력</div>
+    </div>
+    ${mkStats()}
+    <div class="grid-controls">
+      <div class="tabs">
+        <button class="tab${state.tab==="기장"?" active":""}" onclick="setTab('기장')">기장 (${state.captains.length})</button>
+        <button class="tab${state.tab==="부기장"?" active":""}" onclick="setTab('부기장')">부기장 (${state.fos.length})</button>
+      </div>
+      <input type="text" id="search-inp" value="${state.search}" placeholder="이름·사번·직책 검색" style="flex:1;min-width:130px" oninput="state.search=this.value;render()"/>
+      <select onchange="state.filterRole=this.value;render()">${roleOpts}</select>
+      <button onclick="document.getElementById('bulk-photo-inp').click()" title="파일명=사번으로 일괄 업로드">📂 사진 일괄</button>
+      <input type="file" id="bulk-photo-inp" accept="image/*" multiple style="display:none" onchange="handleBulkPhotos(this)"/>
+      <button onclick="doPrint()">🖨 PDF 출력</button>
+      <button onclick="openAdd()" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">+ 신규 입사</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+      ${list.length===0?`<div style="grid-column:1/-1;padding:40px;text-align:center;color:#bbb;font-size:14px">검색 결과가 없습니다</div>`:""}
+      ${list.map(mkCard).join("")}
+    </div>
+    <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right">${list.length}명 표시</div>
+    ${modalHtml}
+    <div id="toast" style="display:none" class="toast"></div>
+  `;
+
+  document.querySelectorAll(".photo-wrap[data-photoid]").forEach(el=>{
+    el.onclick=()=>pickPhoto(el.dataset.photoid);
+  });
+
+  if(state.modal==="form"){
+    const photobtn=document.getElementById("modal-photo-btn");
+    const photofile=document.getElementById("modal-photo-file");
+    if(photobtn&&photofile){
+      photobtn.onclick=()=>photofile.click();
+      photofile.onchange=e=>{
+        const file=e.target.files[0];if(!file)return;
+        const r=new FileReader();
+        r.onload=ev=>{state.formPhotoPreview=ev.target.result;render();};
+        r.readAsDataURL(file);
+        e.target.value="";
+      };
+    }
+    ["name","id","joinDate","appointDate","position","role"].forEach(k=>{
+      const el=document.getElementById("ff-"+k);
+      if(el)el.oninput=el.onchange=()=>{state.form[k]=el.value;};
+    });
+  }
+}
+
+function pickPhoto(id){
+  const inp=document.createElement("input");
+  inp.type="file";inp.accept="image/*";
+  inp.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{state.photos[id]=ev.target.result;render();showToast("사진이 등록되었습니다.");};
+    r.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function handleBulkPhotos(inp){
+  const files=Array.from(inp.files);
+  let done=0;
+  files.forEach(file=>{
+    const base=file.name.replace(/\.[^.]+$/,"");
+    const r=new FileReader();
+    r.onload=ev=>{
+      state.photos[base]=ev.target.result;
+      done++;
+      if(done===files.length){render();showToast(`사진 ${done}장 등록 완료`);}
+    };
+    r.readAsDataURL(file);
+  });
+  inp.value="";
+}
+
+function setTab(t){state.tab=t;state.filterRole="전체";render();}
+function closeModal(){state.modal=null;state.confirmPerson=null;state.promotePerson=null;render();}
+function openAdd(){
+  const r=getAvailRoles()[0];
+  state.form={name:"",id:"",role:r,position:r,joinDate:"",appointDate:""};
+  state.formPhotoPreview=null;state.editId=null;state.modal="form";render();
+}
+function openEdit(id){
+  const p=[...state.captains,...state.fos].find(x=>x.id===id);
+  if(!p)return;
+  state.form={...p};state.formPhotoPreview=state.photos[id]||null;state.editId=id;state.modal="form";render();
+}
+function openDelete(id){
+  const p=getList().find(x=>x.id===id);
+  if(!p)return;
+  state.confirmPerson=p;state.modal="delete";render();
+}
+function openPromote(id){
+  const p=state.fos.find(x=>x.id===id);
+  if(!p)return;
+  state.promotePerson=p;state.modal="promote";render();
+}
+
+function saveForm(){
+  const f=state.form;
+  if(!f.name.trim()||!f.id.trim()){showToast("성명과 사번은 필수입니다.","err");return;}
+  if(state.formPhotoPreview)state.photos[f.id]=state.formPhotoPreview;
+  if(state.editId){
+    if(state.tab==="기장")state.captains=state.captains.map(p=>p.id===state.editId?{...f}:p);
+    else state.fos=state.fos.map(p=>p.id===state.editId?{...f}:p);
+    showToast(`${f.name} 정보가 수정되었습니다.`);
+  } else {
+    if([...state.captains,...state.fos].find(p=>p.id===f.id)){showToast("이미 존재하는 사번입니다.","err");return;}
+    if(state.tab==="기장")state.captains=[...state.captains,{...f}];
+    else state.fos=[...state.fos,{...f}];
+    showToast(`${f.name} 승무원이 추가되었습니다.`);
+  }
+  state.modal=null;render();
+}
+
+function doDelete(id){
+  const p=getList().find(x=>x.id===id);
+  if(!p)return;
+  if(state.tab==="기장")state.captains=state.captains.filter(x=>x.id!==id);
+  else state.fos=state.fos.filter(x=>x.id!==id);
+  showToast(`${p.name} 승무원이 퇴사 처리되었습니다.`,"warn");
+  state.modal=null;state.confirmPerson=null;render();
+}
+
+function doPromote(id){
+  const p=state.fos.find(x=>x.id===id);
+  if(!p)return;
+  state.fos=state.fos.filter(x=>x.id!==id);
+  state.captains=[...state.captains,{...p,role:"기장",position:"기장",appointDate:today()}];
+  showToast(`${p.name} 기장으로 승격되었습니다!`);
+  state.modal=null;state.promotePerson=null;render();
+}
+
+function doPrint(){
+  const list=filtered();
+  const section=state.tab==="기장"?"기장":"부기장";
+  const t=new Date().toLocaleDateString("ko-KR");
+  const rows=[];
+  for(let i=0;i<list.length;i+=6)rows.push(list.slice(i,i+6));
+
+  const photoCell=p=>{
+    const src=state.photos[p.id];
+    const m=ROLE_META[p.role]||ROLE_META["부기장"];
+    if(src)return`<img src="${src}" style="width:78px;height:88px;object-fit:cover;border-radius:5px;display:block;margin:0 auto 5px"/>`;
+    return`<div style="width:78px;height:88px;border-radius:5px;background:${m.bg};border:1px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:500;color:${m.text};margin:0 auto 5px">${p.name[0]}</div>`;
+  };
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+@page{size:A4 landscape;margin:12mm}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:9px;color:#111}
+h1{font-size:13px;font-weight:600;margin:0 0 3px}
+.sub{font-size:9px;color:#666;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}
+td{vertical-align:top;padding:7px 5px;border:0.5px solid #ccc;text-align:center;width:16.6%}
+.name{font-size:12px;font-weight:600;margin:2px 0}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:500;margin:2px 0 4px}
+.pos{font-size:8px;color:#555;margin:2px 0 5px;line-height:1.4}
+.meta{font-size:8px;color:#333;line-height:1.8;text-align:left;padding:0 4px}
+.meta span{color:#999}
+</style></head><body>
+<h1>■ 에어프레미아 운항승무원 명단 (${section})</h1>
+<div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${list.length}명</div>
+<table>
+${rows.map(row=>`<tr>${row.map(p=>{const m=ROLE_META[p.role]||ROLE_META["부기장"];return`<td>
+${photoCell(p)}
+<div class="name">${p.name}</div>
+<div class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${p.role}</div>
+<div class="pos">${p.position!==p.role?p.position:""}</div>
+<div class="meta"><span>사번</span> ${p.id}<br><span>입사</span> ${p.joinDate}<br><span>임명</span> ${p.appointDate||"-"}</div>
+</td>`;}).join("")}${row.length<6?`<td colspan="${6-row.length}" style="border:none"></td>`:""}</tr>`).join("")}
+</table></body></html>`;
+
+  const w=window.open("","_blank","width=1200,height=850");
+  w.document.write(html);w.document.close();
+  w.onload=()=>{setTimeout(()=>w.print(),300);};
+}
+
+render();
+</script>
