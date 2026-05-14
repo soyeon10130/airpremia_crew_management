@@ -519,6 +519,19 @@ function saveForm(){
     else state.fos=[...state.fos,{...f}];
     showToast(`${f.name} 승무원이 추가되었습니다.`);
   }
+```js id="cmk4g9"
+// Firebase 저장
+try{
+  await addDoc(collection(db, "crew"), {
+    ...f,
+    createdAt: new Date()
+  });
+
+  console.log("Firebase 저장 완료");
+
+}catch(err){
+  console.error("Firebase 저장 실패:", err);
+}
   state.modal=null;render();
 }
 
