@@ -52,42 +52,40 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ========================= 사진 영구 저장 헬퍼 =========================
-// window.storage (Artifact persistent storage) 사용
-// 키 형식: "photo:사번" → base64 문자열
-async function savePhoto(id, dataUrl) {
+// ========================= 사진 영구 저장 헬퍼 (localStorage) =========================
+// localStorage는 브라우저에 영구 저장되어 새로고침·재접속 후에도 유지됩니다.
+// 키 형식: "crew_photo:사번" → base64 문자열
+const PHOTO_PREFIX = "crew_photo:";
+
+function savePhoto(id, dataUrl) {
   try {
-    await window.storage.set(`photo:${id}`, dataUrl);
+    localStorage.setItem(PHOTO_PREFIX + id, dataUrl);
   } catch(e) {
-    console.warn("사진 저장 실패:", e);
+    // localStorage 용량 초과(보통 5MB) 시 경고
+    console.warn("사진 저장 실패 (용량 초과 가능성):", e);
+    showToast("저장 공간 부족으로 사진을 저장하지 못했습니다.", "err");
   }
 }
 
-async function loadAllPhotos() {
+function loadAllPhotos() {
+  const photos = {};
   try {
-    const result = await window.storage.list("photo:");
-    const photos = {};
-    if (result && result.keys && result.keys.length > 0) {
-      await Promise.all(result.keys.map(async key => {
-        try {
-          const r = await window.storage.get(key);
-          if (r && r.value) {
-            const id = key.replace("photo:", "");
-            photos[id] = r.value;
-          }
-        } catch(e) {}
-      }));
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(PHOTO_PREFIX)) {
+        const id = key.slice(PHOTO_PREFIX.length);
+        photos[id] = localStorage.getItem(key);
+      }
     }
-    return photos;
   } catch(e) {
     console.warn("사진 로딩 실패:", e);
-    return {};
   }
+  return photos;
 }
 
-async function deletePhoto(id) {
+function deletePhoto(id) {
   try {
-    await window.storage.delete(`photo:${id}`);
+    localStorage.removeItem(PHOTO_PREFIX + id);
   } catch(e) {}
 }
 
@@ -117,6 +115,7 @@ const CAP_DATA=[
   {id:"P213001",name:"고희덕",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.26"},
   {id:"P223006",name:"김경석",  role:"기장",position:"기장/운항승무1파트장",        joinDate:"2022.08.01",appointDate:"2023.03.03"},
   {id:"P223005",name:"김경수",  role:"기장",position:"기장",joinDate:"2022.08.01",appointDate:"2023.04.07"},
+  {id:"P999001",name:"김길주",  role:"기장",position:"기장",joinDate:"",appointDate:""},
   {id:"P243041",name:"김남호",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.05.19"},
   {id:"P203018",name:"김동섭",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.06.25"},
   {id:"P213002",name:"김동환",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.09.16"},
@@ -294,7 +293,7 @@ const FO_DATA=[
 let state={
   captains:[...CAP_DATA],
   fos:[...FO_DATA],
-  photos:{},          // 메모리 캐시 (영구 저장은 window.storage)
+  photos: loadAllPhotos(),   // ← 앱 시작 시 localStorage에서 즉시 동기 로딩
   tab:"기장",
   search:"",
   filterRole:"전체",
@@ -304,15 +303,10 @@ let state={
   confirmPerson:null,
   promotePerson:null,
   formPhotoPreview:null,
-  photosLoaded:false,
 };
 
-// ========================= 앱 초기화: 저장된 사진 모두 불러오기 =========================
-async function initPhotos() {
-  state.photos = await loadAllPhotos();
-  state.photosLoaded = true;
-  render();
-}
+// ========================= 역할 메타 =========================
+const ROLE_META_KEYS=Object.keys(ROLE_META);
 
 // ========================= 유틸 =========================
 let toastTimer=null;
@@ -374,7 +368,7 @@ function mkCard(p){
       </div>
     </div>
     <div class="info-grid">
-      <div><div class="info-label">입사년월</div><div class="info-val">${p.joinDate}</div></div>
+      <div><div class="info-label">입사년월</div><div class="info-val">${p.joinDate||"-"}</div></div>
       <div><div class="info-label">임명일</div><div class="info-val">${p.appointDate||"-"}</div></div>
     </div>
     <div class="actions">
@@ -483,16 +477,17 @@ function render(){
   else if(state.modal==="delete")  modalHtml=mkConfirmModal(state.confirmPerson,"delete");
   else if(state.modal==="promote") modalHtml=mkConfirmModal(state.promotePerson,"promote");
 
-  const loadingBanner = !state.photosLoaded
-    ? `<div style="text-align:center;padding:8px;font-size:12px;color:#999;background:#fffbe6;border-radius:8px;margin-bottom:12px">📂 저장된 사진 불러오는 중...</div>`
-    : "";
+  // localStorage에 저장된 사진 수 표시
+  const photoCount = Object.keys(state.photos).length;
+  const photoInfo = photoCount > 0
+    ? `<strong style="color:#27500a">사진 ${photoCount}장 저장됨</strong>`
+    : `사진 업로드 후 <strong style="color:#27500a">새로고침해도 유지</strong>됨`;
 
   document.getElementById("app").innerHTML=`
     <div style="margin-bottom:16px">
       <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">✈ 에어프레미아 운항승무원 명단 관리</div>
-      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력 · <strong style="color:#27500a">사진 자동 저장됨</strong></div>
+      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력 · ${photoInfo}</div>
     </div>
-    ${loadingBanner}
     ${mkStats()}
     <div class="grid-controls">
       <div class="tabs">
@@ -546,37 +541,38 @@ function pickPhoto(id){
   inp.onchange=e=>{
     const file=e.target.files[0];if(!file)return;
     const r=new FileReader();
-    r.onload=async ev=>{
+    r.onload=ev=>{
       const dataUrl=ev.target.result;
       state.photos[id]=dataUrl;
-      await savePhoto(id, dataUrl);   // ← 영구 저장
+      savePhoto(id, dataUrl);   // ← localStorage에 즉시 저장
       render();
-      showToast("사진이 저장되었습니다.");
+      showToast("사진이 저장되었습니다. 새로고침 후에도 유지됩니다.");
     };
     r.readAsDataURL(file);
   };
   inp.click();
 }
 
-async function handleBulkPhotos(inp){
+function handleBulkPhotos(inp){
   const files=Array.from(inp.files);
   let done=0;
   const saves=files.map(file=>new Promise(resolve=>{
     const base=file.name.replace(/\.[^.]+$/,"");
     const r=new FileReader();
-    r.onload=async ev=>{
+    r.onload=ev=>{
       const dataUrl=ev.target.result;
       state.photos[base]=dataUrl;
-      await savePhoto(base, dataUrl);  // ← 영구 저장
+      savePhoto(base, dataUrl);  // ← localStorage에 즉시 저장
       done++;
       resolve();
     };
     r.readAsDataURL(file);
   }));
-  await Promise.all(saves);
-  render();
-  showToast(`사진 ${done}장 저장 완료`);
-  inp.value="";
+  Promise.all(saves).then(()=>{
+    render();
+    showToast(`사진 ${done}장 저장 완료. 새로고침 후에도 유지됩니다.`);
+    inp.value="";
+  });
 }
 
 function setTab(t){state.tab=t;state.filterRole="전체";render();}
@@ -610,10 +606,9 @@ async function saveForm(){
   const f=state.form;
   if(!f.name.trim()||!f.id.trim()){showToast("성명과 사번은 필수입니다.","err");return;}
 
-  // 폼에서 사진 선택했으면 영구 저장
   if(state.formPhotoPreview){
     state.photos[f.id]=state.formPhotoPreview;
-    await savePhoto(f.id, state.formPhotoPreview);
+    savePhoto(f.id, state.formPhotoPreview);
   }
 
   if(state.editId){
@@ -644,7 +639,6 @@ function doDelete(id){
   if(!p)return;
   if(state.tab==="기장") state.captains=state.captains.filter(x=>x.id!==id);
   else                   state.fos=state.fos.filter(x=>x.id!==id);
-  // 사진도 삭제
   delete state.photos[id];
   deletePhoto(id);
   showToast(`${p.name} 승무원이 퇴사 처리되었습니다.`,"warn");
@@ -696,7 +690,7 @@ ${photoCell(p)}
 <div class="name">${p.name}</div>
 <div class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${p.role}</div>
 <div class="pos">${p.position!==p.role?p.position:""}</div>
-<div class="meta"><span>사번</span> ${p.id}<br><span>입사</span> ${p.joinDate}<br><span>임명</span> ${p.appointDate||"-"}</div>
+<div class="meta"><span>사번</span> ${p.id}<br><span>입사</span> ${p.joinDate||"-"}<br><span>임명</span> ${p.appointDate||"-"}</div>
 </td>`;}).join("")}${row.length<6?`<td colspan="${6-row.length}" style="border:none"></td>`:""}</tr>`).join("")}
 </table></body></html>`;
 
@@ -720,9 +714,8 @@ window.handleBulkPhotos=handleBulkPhotos;
 window.state=state;
 window.render=render;
 
-// 앱 시작: 사진 먼저 로딩 후 렌더
-render(); // 빈 상태로 일단 표시
-initPhotos(); // 비동기로 사진 불러와서 다시 렌더
+// 앱 시작 (사진은 이미 loadAllPhotos()로 동기 로딩 완료)
+render();
 </script>
 </body>
 </html>
