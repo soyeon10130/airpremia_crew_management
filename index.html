@@ -89,6 +89,34 @@ function deletePhoto(id) {
   } catch(e) {}
 }
 
+// ========================= 명단 데이터 영구 저장 헬퍼 =========================
+// 키: "crew_captains" / "crew_fos" → JSON 문자열
+const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
+
+function saveCrewData() {
+  try {
+    localStorage.setItem(CREW_KEYS.captains, JSON.stringify(state.captains));
+    localStorage.setItem(CREW_KEYS.fos,      JSON.stringify(state.fos));
+  } catch(e) {
+    console.warn("명단 저장 실패:", e);
+    showToast("저장 공간 부족으로 명단을 저장하지 못했습니다.", "err");
+  }
+}
+
+function loadCrewData() {
+  try {
+    const caps = localStorage.getItem(CREW_KEYS.captains);
+    const fos  = localStorage.getItem(CREW_KEYS.fos);
+    return {
+      captains: caps ? JSON.parse(caps) : null,
+      fos:      fos  ? JSON.parse(fos)  : null,
+    };
+  } catch(e) {
+    console.warn("명단 로딩 실패:", e);
+    return { captains: null, fos: null };
+  }
+}
+
 // ========================= 역할 메타 =========================
 const ROLE_META={
   "기장":           {bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
@@ -290,9 +318,11 @@ const FO_DATA=[
 ];
 
 // ========================= 상태 =========================
+// localStorage에 저장된 명단이 있으면 우선 사용, 없으면 초기 데이터 사용
+const _saved = loadCrewData();
 let state={
-  captains:[...CAP_DATA],
-  fos:[...FO_DATA],
+  captains: _saved.captains || [...CAP_DATA],
+  fos:      _saved.fos      || [...FO_DATA],
   photos: loadAllPhotos(),   // ← 앱 시작 시 localStorage에서 즉시 동기 로딩
   tab:"기장",
   search:"",
@@ -630,6 +660,7 @@ async function saveForm(){
     }
   }
 
+  saveCrewData();   // ← 명단 변경 저장
   state.modal=null;
   render();
 }
@@ -641,6 +672,7 @@ function doDelete(id){
   else                   state.fos=state.fos.filter(x=>x.id!==id);
   delete state.photos[id];
   deletePhoto(id);
+  saveCrewData();   // ← 명단 변경 저장
   showToast(`${p.name} 승무원이 퇴사 처리되었습니다.`,"warn");
   state.modal=null;state.confirmPerson=null;render();
 }
@@ -650,6 +682,7 @@ function doPromote(id){
   if(!p)return;
   state.fos=state.fos.filter(x=>x.id!==id);
   state.captains=[...state.captains,{...p,role:"기장",position:"기장",appointDate:today()}];
+  saveCrewData();   // ← 명단 변경 저장
   showToast(`${p.name} 기장으로 승격되었습니다!`);
   state.modal=null;state.promotePerson=null;render();
 }
