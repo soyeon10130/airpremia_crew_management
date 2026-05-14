@@ -31,7 +31,7 @@ label.fl{font-size:12px;color:#666;display:block;margin-bottom:3px}
 
 <div id="app" style="max-width:860px;margin:0 auto;padding:14px 0"></div>
 
-<script>
+<script type="module"> // ========================= // Firebase 연결 // ========================= import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"; import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"; const firebaseConfig = { apiKey: "AIzaSyDjWy3xptwFQyFDSvfeMphhAh9rBak6Irs", authDomain: "airpremia-crew-management.firebaseapp.com", projectId: "airpremia-crew-management", storageBucket: "airpremia-crew-management.firebasestorage.app", messagingSenderId: "501425116074", appId: "1:501425116074:web:9f67175e718ea7cabd51d3" }; const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 const ROLE_META={
   "기장":           {bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
   "훈련기장":       {bg:"#eaf3de",text:"#27500a",border:"#3b6d11"},
