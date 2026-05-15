@@ -2724,6 +2724,7 @@ function mkTopControls(){
       <input type="file" id="bulk-photo-inp" accept="image/*" multiple style="display:none" onchange="handleBulkPhotos(this)"/>
       <button onclick="clearAllPhotos()" title="저장된 사진만 삭제하고 인사정보는 유지">사진 초기화</button>
       <button onclick="doPrint()">PDF 출력</button>
+      <button onclick="doExportImages()" style="background:#faeeda;color:#633806;border-color:#854f0b;font-weight:500">이미지 추출</button>
     `:`<button onclick="downloadExcel()" style="background:#eaf3de;color:#27500a;border-color:#3b6d11;font-weight:500">Excel 다운로드</button>`}
     <button onclick="document.getElementById('hr-excel-inp').click()" title="신규 입사자 인적사항 Excel 반영">인적사항 업로드</button>
     <input type="file" id="hr-excel-inp" accept=".xlsx,.xls" style="display:none" onchange="handleHrExcelUpload(this)"/>
@@ -3323,6 +3324,81 @@ ${pagesHtml}
   w.onload=()=>{setTimeout(()=>w.print(),300);};
 }
 
+async function doExportImages(){
+  const list=filtered();
+  if(!list.length){showToast("명단이 없습니다.","err");return;}
+  const section=state.tab==="기장"?"기장":"부기장";
+  const t=new Date().toLocaleDateString("ko-KR");
+  const COLS=6, PER_PAGE=18;
+  const photoCell=p=>{
+    const src=state.photos[p.id];
+    const m=ROLE_META[p.role]||ROLE_META["부기장"];
+    if(src)return`<img src="${src}" style="width:78px;height:88px;object-fit:cover;border-radius:5px;display:block;margin:0 auto 5px" crossorigin="anonymous"/>`;
+    return`<div style="width:78px;height:88px;border-radius:5px;background:${m.bg};border:1px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:500;color:${m.text};margin:0 auto 5px">${escapeHtml(p.name[0]||"?")}</div>`;
+  };
+  const makeCell=p=>{
+    const m=ROLE_META[p.role]||ROLE_META["부기장"];
+    return`<td>${photoCell(p)}<div class="name">${escapeHtml(p.name)}</div><div class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${escapeHtml(p.role)}</div><div class="pos">${p.position!==p.role?escapeHtml(p.position):""}</div><div class="meta"><span>사번</span> ${escapeHtml(p.id)}<br><span>입사</span> ${escapeHtml(p.joinDate||"-")}<br><span>임명</span> ${escapeHtml(p.appointDate||"-")}</div></td>`;
+  };
+  const pages=[];
+  for(let i=0;i<list.length;i+=PER_PAGE) pages.push(list.slice(i,i+PER_PAGE));
+
+  // 팝업창에 html2canvas 로드 후 페이지별 캡처
+  const style=`
+    body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:9px;color:#111;margin:0;padding:16px;background:#fff}
+    .page{width:1122px;background:#fff;padding:10px;box-sizing:border-box;margin-bottom:40px}
+    h1{font-size:13px;font-weight:600;margin:0 0 2px}
+    .sub{font-size:9px;color:#666;margin:0 0 6px}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    td{vertical-align:top;padding:6px 4px;border:0.5px solid #ccc;text-align:center;width:16.666%}
+    .name{font-size:12px;font-weight:600;margin:2px 0}
+    .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:500;margin:2px 0 4px}
+    .pos{font-size:8px;color:#555;margin:2px 0 5px;line-height:1.4}
+    .meta{font-size:8px;color:#333;line-height:1.8;text-align:left;padding:0 4px}
+    .meta span{color:#999}
+    #status{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;z-index:99}
+  `;
+  const pagesHtml=pages.map((page,pi)=>{
+    const pageRows=[];
+    for(let r=0;r<page.length;r+=COLS) pageRows.push(page.slice(r,r+COLS));
+    return`<div class="page" id="page-${pi}">
+<h1>■ 에어프레미아 운항승무원 명단 (${section})</h1>
+<div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${list.length}명 &nbsp;|&nbsp; ${pi+1}/${pages.length} 페이지</div>
+<table>${pageRows.map(row=>`<tr>${row.map(makeCell).join("")}${row.length<COLS?`<td colspan="${COLS-row.length}" style="border:none"></td>`:""}</tr>`).join("")}</table>
+</div>`;
+  }).join("");
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${style}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+</head><body>
+<div id="status">이미지 준비 중...</div>
+${pagesHtml}
+<script>
+window.onload=async function(){
+  const total=${pages.length};
+  const status=document.getElementById('status');
+  for(let i=0;i<total;i++){
+    status.textContent=(i+1)+'/'+total+' 페이지 캡처 중...';
+    const el=document.getElementById('page-'+i);
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',width:1122});
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='airpremia_${section}_'+(i+1)+'of'+total+'.png';
+    a.click();
+    await new Promise(r=>setTimeout(r,600));
+  }
+  status.textContent='✅ 완료! '+total+'장 다운로드됨';
+  setTimeout(()=>status.style.display='none',3000);
+};
+<\/script>
+</body></html>`;
+
+  const w=window.open("","_blank","width=1200,height=900");
+  w.document.write(html);
+  w.document.close();
+}
+
+
 window.setView=setView;
 window.setTab=setTab;
 window.closeModal=closeModal;
@@ -3334,6 +3410,7 @@ window.saveForm=saveForm;
 window.doDelete=doDelete;
 window.doPromote=doPromote;
 window.doPrint=doPrint;
+window.doExportImages=doExportImages;
 window.downloadExcel=downloadExcel;
 window.handleBulkPhotos=handleBulkPhotos;
 window.handleHrExcelUpload=handleHrExcelUpload;
