@@ -2628,6 +2628,8 @@ function mkTopControls(){
       <button onclick="clearAllPhotos()" title="저장된 사진만 삭제하고 인사정보는 유지">사진 초기화</button>
       <button onclick="doPrint()">PDF 출력</button>
     `:`<button onclick="downloadExcel()" style="background:#eaf3de;color:#27500a;border-color:#3b6d11;font-weight:500">Excel 다운로드</button>`}
+    <button onclick="document.getElementById('hr-excel-inp').click()" title="신규 입사자 인적사항 Excel 반영">인적사항 업로드</button>
+    <input type="file" id="hr-excel-inp" accept=".xlsx,.xls" style="display:none" onchange="handleHrExcelUpload(this)"/>
     <button onclick="openAdd()" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">+ 신규 입사</button>
   </div>`;
 }
@@ -2850,6 +2852,150 @@ function clearAllPhotos(){
   showToast("저장된 사진을 모두 삭제했습니다.","warn");
 }
 
+function loadSheetJs(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((resolve,reject)=>{
+    const script=document.createElement("script");
+    script.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    script.onload=()=>window.XLSX?resolve(window.XLSX):reject(new Error("Excel 파서를 불러오지 못했습니다."));
+    script.onerror=()=>reject(new Error("Excel 파서를 불러오지 못했습니다."));
+    document.head.appendChild(script);
+  });
+}
+
+function cleanCell(v){
+  return String(v ?? "").replace(/\s+/g," ").trim();
+}
+
+function formatImportedDate(v){
+  if(!v) return "";
+  if(v instanceof Date && !isNaN(v)) {
+    return `${v.getFullYear()}.${String(v.getMonth()+1).padStart(2,"0")}.${String(v.getDate()).padStart(2,"0")}`;
+  }
+  const s=cleanCell(v).replace(/\s*\.\s*/g,".").replace(/-/g,".");
+  const m=s.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  if(m) return `${m[1]}.${m[2].padStart(2,"0")}.${m[3].padStart(2,"0")}`;
+  return s;
+}
+
+function formatImportedPhone(v){
+  const digits=String(v ?? "").replace(/\D/g,"");
+  if(!digits) return "";
+  const phone=digits.length===10 && digits.startsWith("10") ? "0"+digits : digits;
+  if(phone.length===11 && phone.startsWith("010")) return `${phone.slice(0,3)}-${phone.slice(3,7)}-${phone.slice(7)}`;
+  if(phone.length===10 && phone.startsWith("02")) return `${phone.slice(0,2)}-${phone.slice(2,6)}-${phone.slice(6)}`;
+  return phone;
+}
+
+function findHeaderIndex(headers, aliases){
+  return headers.findIndex(h=>aliases.some(alias=>h.includes(alias)));
+}
+
+function inferDefaultImportRole(fileName, sheetName){
+  const source=`${fileName} ${sheetName}`;
+  if(source.includes("부기장")) return {listName:"부기장",role:"수습부기장",position:"수습부기장"};
+  if(source.includes("기장")) return {listName:"기장",role:"훈련기장",position:"훈련기장"};
+  return {listName:"부기장",role:"수습부기장",position:"수습부기장"};
+}
+
+function parseHrRowsFromSheet(rows, fileName, sheetName){
+  const headerRowIndex=rows.findIndex(row=>{
+    const values=row.map(cleanCell);
+    return values.some(v=>v==="사번") && values.some(v=>["성명","지원자명","이름"].includes(v));
+  });
+  if(headerRowIndex<0) return [];
+  const headers=rows[headerRowIndex].map(cleanCell);
+  const idx={
+    id:findHeaderIndex(headers,["사번"]),
+    name:findHeaderIndex(headers,["성명","지원자명","이름"]),
+    role:findHeaderIndex(headers,["직위"]),
+    joinDate:findHeaderIndex(headers,["입사일","입사일자"]),
+    birthDate:findHeaderIndex(headers,["생년월일"]),
+    phone:findHeaderIndex(headers,["휴대폰번호","휴대폰","지원자 전화번호","전화번호"]),
+    email:findHeaderIndex(headers,["사내이메일","이메일"]),
+    address:findHeaderIndex(headers,["현거주주소","주소"]),
+  };
+  const defaults=inferDefaultImportRole(fileName,sheetName);
+  return rows.slice(headerRowIndex+1).map(row=>{
+    const id=cleanCell(row[idx.id]);
+    const name=cleanCell(row[idx.name]);
+    if(!id||!name) return null;
+    const importedPosition=idx.role>=0?cleanCell(row[idx.role]):"";
+    const importedRole=importedPosition?importedPosition.replace(/\(.*?\)/g,"").trim():defaults.role;
+    return {
+      ...normalizePerson({
+      id,
+      name,
+      role:importedRole||defaults.role,
+      position:importedPosition||defaults.position,
+      joinDate:idx.joinDate>=0?formatImportedDate(row[idx.joinDate]):"",
+      appointDate:"",
+      birthDate:idx.birthDate>=0?formatImportedDate(row[idx.birthDate]):"",
+      phone:idx.phone>=0?formatImportedPhone(row[idx.phone]):"",
+      email:idx.email>=0?cleanCell(row[idx.email]):"",
+      address:idx.address>=0?cleanCell(row[idx.address]):"",
+      }),
+      listName:defaults.listName,
+    };
+  }).filter(Boolean);
+}
+
+function mergeImportedPeople(imported){
+  let added=0, updated=0;
+  const mergeIntoList=(list,p)=>list.map(existing=>{
+    if(existing.id!==p.id) return existing;
+    updated++;
+    return {
+      ...existing,
+      name:p.name||existing.name,
+      birthDate:p.birthDate||existing.birthDate,
+      phone:p.phone||existing.phone,
+      email:p.email||existing.email,
+      address:p.address||existing.address,
+      joinDate:p.joinDate||existing.joinDate,
+      appointDate:existing.appointDate||p.appointDate,
+    };
+  });
+
+  imported.forEach(p=>{
+    const inCaptains=state.captains.some(x=>x.id===p.id);
+    const inFos=state.fos.some(x=>x.id===p.id);
+    if(inCaptains) state.captains=mergeIntoList(state.captains,p);
+    else if(inFos) state.fos=mergeIntoList(state.fos,p);
+    else {
+      const target=p.listName==="기장"||["기장","훈련기장","수습기장"].includes(p.role) ? "기장" : "부기장";
+      if(target==="기장") state.captains=[...state.captains,p];
+      else state.fos=[...state.fos,p];
+      added++;
+    }
+  });
+  saveCrewData();
+  return {added,updated};
+}
+
+async function handleHrExcelUpload(inp){
+  const file=inp.files&&inp.files[0];
+  if(!file) return;
+  try {
+    const XLSX=await loadSheetJs();
+    const data=await file.arrayBuffer();
+    const wb=XLSX.read(data,{type:"array",cellDates:true});
+    const imported=wb.SheetNames.flatMap(sheetName=>{
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:false,defval:""});
+      return parseHrRowsFromSheet(rows,file.name,sheetName);
+    });
+    if(!imported.length){showToast("인식 가능한 인적사항 행을 찾지 못했습니다.","err");return;}
+    const result=mergeImportedPeople(imported);
+    render();
+    showToast(`인적사항 반영 완료: 신규 ${result.added}명, 갱신 ${result.updated}명`);
+  } catch(err) {
+    console.error(err);
+    showToast("Excel 업로드를 처리하지 못했습니다. 인터넷 연결 또는 파일 형식을 확인해주세요.","err");
+  } finally {
+    inp.value="";
+  }
+}
+
 function setView(v){state.view=v;state.filterRole="전체";render();}
 function setTab(t){state.tab=t;state.filterRole="전체";render();}
 function closeModal(){state.modal=null;state.confirmPerson=null;state.promotePerson=null;state.editList=null;render();}
@@ -3025,6 +3171,7 @@ window.doPromote=doPromote;
 window.doPrint=doPrint;
 window.downloadExcel=downloadExcel;
 window.handleBulkPhotos=handleBulkPhotos;
+window.handleHrExcelUpload=handleHrExcelUpload;
 window.clearAllPhotos=clearAllPhotos;
 window.handlePhotoFallback=handlePhotoFallback;
 window.state=state;
