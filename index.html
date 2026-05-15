@@ -3299,7 +3299,7 @@ function doPrint(){
     return`<div class="page${isLast?"":" page-break"}">
 <div class="page-header">
   <h1>■ 에어프레미아 운항승무원 명단 (${section})</h1>
-  <div class="sub">발행일: ${t} &nbsp;|&nbsp; ${totalSummary} &nbsp;|&nbsp; ${section} ${list.length}명 &nbsp;|&nbsp; ${pi+1}/${pages.length} 페이지 &nbsp;(No.${pi*PER_PAGE+1}–${Math.min((pi+1)*PER_PAGE,list.length)})</div>
+  <div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${capCount+foCount}명 &nbsp;|&nbsp; 기장 총 ${capCount}명 &nbsp;|&nbsp; 부기장 총 ${foCount}명 &nbsp;|&nbsp; ${section} ${pi+1}/${pages.length} 페이지 &nbsp;(No.${pi*PER_PAGE+1}–${Math.min((pi+1)*PER_PAGE,list.length)})</div>
 </div>
 <table>${pageRows.map(row=>`<tr>${row.map(makeCell).join("")}${row.length<COLS?`<td colspan="${COLS-row.length}" style="border:none"></td>`:""}</tr>`).join("")}</table>
 </div>`;
@@ -3369,7 +3369,7 @@ async function doExportImages(){
     for(let r=0;r<page.length;r+=COLS) pageRows.push(page.slice(r,r+COLS));
     return`<div class="page" id="page-${pi}">
 <h1>■ 에어프레미아 운항승무원 명단 (${section})</h1>
-<div class="sub">발행일: ${t} &nbsp;|&nbsp; ${totalSummary} &nbsp;|&nbsp; ${section} ${list.length}명 &nbsp;|&nbsp; ${pi+1}/${pages.length} 페이지</div>
+<div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${capCount+foCount}명 &nbsp;|&nbsp; 기장 총 ${capCount}명 &nbsp;|&nbsp; 부기장 총 ${foCount}명 &nbsp;|&nbsp; ${section} ${pi+1}/${pages.length} 페이지</div>
 <table>${pageRows.map(row=>`<tr>${row.map(makeCell).join("")}${row.length<COLS?`<td colspan="${COLS-row.length}" style="border:none"></td>`:""}</tr>`).join("")}</table>
 </div>`;
   }).join("");
