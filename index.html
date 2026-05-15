@@ -3,43 +3,57 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>에어프레미아 운항승무원 명단</title>
+<title>에어프레미아 운항승무원 인사 관리</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#111;background:#f7f7f7;padding:16px}
-input,select,button{font-family:inherit;font-size:13px}
-input[type=text],select{padding:7px 10px;border:0.5px solid #ccc;border-radius:8px;width:100%;outline:none;background:#fff;color:#111}
-input[type=text]:focus,select:focus{border-color:#378add}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;color:#111;background:#f7f7f7;padding:16px}
+input,select,button,textarea{font-family:inherit;font-size:13px}
+input[type=text],input[type=email],input[type=tel],select,textarea{padding:7px 10px;border:0.5px solid #ccc;border-radius:8px;width:100%;outline:none;background:#fff;color:#111}
+input:focus,select:focus,textarea:focus{border-color:#378add}
 button{cursor:pointer;border-radius:8px;border:0.5px solid #ccc;padding:6px 14px;background:#fff;color:#333}
 button:hover{background:#f5f5f5}
 .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;white-space:nowrap}
-.card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:13px 13px 11px;display:flex;flex-direction:column;gap:0}
+.card{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:13px 13px 11px;display:flex;flex-direction:column}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200}
-.modal{background:#fff;border-radius:14px;padding:24px 26px;width:410px;max-height:90vh;overflow-y:auto}
+.modal{background:#fff;border-radius:12px;padding:24px 26px;width:520px;max-width:calc(100vw - 28px);max-height:90vh;overflow-y:auto}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:300;white-space:nowrap;pointer-events:none}
 .photo-wrap{position:relative;cursor:pointer;flex-shrink:0}
 .photo-wrap:hover .photo-overlay{opacity:1}
 .photo-overlay{position:absolute;inset:0;border-radius:7px;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-size:18px}
-.stat-card{border-radius:10px;padding:10px 12px}
+.stat-card{border-radius:8px;padding:10px 12px}
 label.fl{font-size:12px;color:#666;display:block;margin-bottom:3px}
 .grid-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.tabs{display:flex;border:0.5px solid #ccc;border-radius:8px;overflow:hidden}
-.tab{padding:7px 16px;font-size:13px;border:none;cursor:pointer;background:transparent;color:#666}
+.tabs{display:flex;border:0.5px solid #ccc;border-radius:8px;overflow:hidden;background:#fff}
+.tab{padding:7px 16px;font-size:13px;border:none;border-right:0.5px solid #ccc;cursor:pointer;background:transparent;color:#666;border-radius:0}
+.tab:last-child{border-right:none}
 .tab.active{background:#f0f0f0;color:#111;font-weight:500}
-.tab:first-child{border-right:0.5px solid #ccc}
+.main-tabs{margin-bottom:14px}
+.main-tabs .tab{min-width:96px}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding-top:9px;border-top:0.5px solid #eee;margin-bottom:10px}
 .info-label{font-size:10px;color:#999;margin-bottom:1px}
 .info-val{font-size:11px;color:#222}
 .actions{display:flex;gap:5px}
 .actions button{flex:1;font-size:11px;padding:5px 0;border-radius:6px}
+.table-wrap{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:980px}
+th,td{border-bottom:0.5px solid #ececec;padding:9px 10px;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#fafafa;font-size:12px;color:#666;font-weight:600;z-index:1}
+td{font-size:13px;color:#222}
+tr:hover td{background:#fcfcfc}
+.muted{color:#999}
+@media(max-width:720px){
+  body{padding:10px}
+  .stats{grid-template-columns:repeat(2,1fr)!important}
+  .modal{padding:20px}
+}
 </style>
 </head>
 <body>
-<div id="app" style="max-width:860px;margin:0 auto;padding:14px 0"></div>
+<div id="app" style="max-width:1120px;margin:0 auto;padding:14px 0"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Firebase 저장은 기존 코드와 동일하게 신규 등록 시도만 수행합니다.
+// 네트워크가 막혀도 앱 자체는 localStorage 기반으로 계속 작동하도록 동적 로딩합니다.
 
 const firebaseConfig = {
   apiKey: "AIzaSyDjWy3xptwFQyFDSvfeMphhAh9rBak6Irs",
@@ -49,22 +63,2275 @@ const firebaseConfig = {
   messagingSenderId: "501425116074",
   appId: "1:501425116074:web:9f67175e718ea7cabd51d3"
 };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-// ========================= 사진 영구 저장 헬퍼 (localStorage) =========================
-// localStorage는 브라우저에 영구 저장되어 새로고침·재접속 후에도 유지됩니다.
-// 키 형식: "crew_photo:사번" → base64 문자열
+let firebaseApi=null;
+async function getFirebaseApi(){
+  if(firebaseApi!==null) return firebaseApi;
+  try {
+    const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const firebaseApp = appMod.initializeApp(firebaseConfig);
+    firebaseApi = {
+      db: fsMod.getFirestore(firebaseApp),
+      collection: fsMod.collection,
+      addDoc: fsMod.addDoc,
+    };
+  } catch(err) {
+    console.warn("Firebase 초기화 실패:", err);
+    firebaseApi = false;
+  }
+  return firebaseApi;
+}
+
 const PHOTO_PREFIX = "crew_photo:";
+const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
+const CREW_DATA_VERSION = "260513-r2";
+const CREW_VERSION_KEY = "crew_data_version";
+const PERSON_FIELDS = ["joinDate","birthDate","phone","email","address"];
+const UPGRADE_TRAINEE_IDS = ["P223001","P223002","P223011","P223013"];
+
+const ROLE_META={
+  "기장":{bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
+  "훈련기장":{bg:"#eaf3de",text:"#27500a",border:"#3b6d11"},
+  "수습기장":{bg:"#edf7f7",text:"#15535a",border:"#25747c"},
+  "기장승격훈련요원":{bg:"#faeeda",text:"#633806",border:"#854f0b"},
+  "부기장":{bg:"#eeedfe",text:"#3c3489",border:"#534ab7"},
+  "수습부기장":{bg:"#faece7",text:"#712b13",border:"#993c1d"},
+};
+
+// 붙여주신 전체 명단은 localStorage 저장 데이터를 우선 사용하도록 유지했습니다.
+// 초기 배포용 전체 데이터가 필요하면, 아래 CAP_DATA / FO_DATA 배열에 기존 항목을 그대로 붙여 넣으면 됩니다.
+const CAP_DATA=[
+  {
+    "id": "P190001",
+    "name": "임원길",
+    "role": "기장",
+    "position": "기장(본부장)",
+    "joinDate": "2019.03.01",
+    "appointDate": "",
+    "birthDate": "1969.08.27",
+    "phone": "010-8207-3828",
+    "email": "wk.lim@airpremia.com",
+    "address": "서울특별시특별시 강서구 우현로 67 (화곡동) 134동 901호"
+  },
+  {
+    "id": "P193001",
+    "name": "이은상",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2019.07.01",
+    "appointDate": "",
+    "birthDate": "1970.08.17",
+    "phone": "010-2675-7517",
+    "email": "es.yi@airpremia.com",
+    "address": "경기도 고양시 일산동구 장항동 869 엠시티타워&엠시티오피스텔 104동 614호"
+  },
+  {
+    "id": "P193002",
+    "name": "신동훈",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2019.09.02",
+    "appointDate": "",
+    "birthDate": "1971.01.27",
+    "phone": "010-6327-6689",
+    "email": "dh.shin@airpremia.com",
+    "address": "경기도 용인시 기흥구 용구대로 2460"
+  },
+  {
+    "id": "P203001",
+    "name": "위충석",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.02.03",
+    "appointDate": "",
+    "birthDate": "1978.01.06",
+    "phone": "010-5622-0638",
+    "email": "cs.wi@airpremia.com",
+    "address": "경기도 고양시 덕양구 화정동 851 달빛마을2단지 207동 806호"
+  },
+  {
+    "id": "P203002",
+    "name": "이중엽",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.02.03",
+    "appointDate": "",
+    "birthDate": "1974.01.07",
+    "phone": "010-8916-0300",
+    "email": "cy.yi@airpremia.com",
+    "address": "인천광역시 연수구 송도동 4-1 송도더샵퍼스트월드 4동 5002호"
+  },
+  {
+    "id": "P203004",
+    "name": "신지수",
+    "role": "기장",
+    "position": "기장(팀장)",
+    "joinDate": "2020.03.02",
+    "appointDate": "",
+    "birthDate": "1969.01.02",
+    "phone": "010-5684-3400",
+    "email": "js.shin@airpremia.com",
+    "address": "서울특별시 강남구 개포로 311 902-206"
+  },
+  {
+    "id": "P263010",
+    "name": "유우룡",
+    "role": "기장",
+    "position": "기장(팀장)",
+    "joinDate": "2020.03.02",
+    "appointDate": "",
+    "birthDate": "1965.07.22",
+    "phone": "010-4262-9403",
+    "email": "wr.yoo@airpremia.com",
+    "address": "경기도 고양시 일산동구 풍동 1268 숲속마을6단지아파트 608동 104호"
+  },
+  {
+    "id": "P203006",
+    "name": "김영필",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.03.02",
+    "appointDate": "",
+    "birthDate": "1973.08.12",
+    "phone": "010-2843-2536",
+    "email": "yp.kim@airpremia.com",
+    "address": "경기도 고양시 일산서구 킨텍스로 240 202동 3306호"
+  },
+  {
+    "id": "P203011",
+    "name": "전지혁",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1972.12.18",
+    "phone": "010-2910-7470",
+    "email": "jh.jun@airpremia.com",
+    "address": "경기도 의왕시 안양판교로 100 푸르지오 엘센트로 202-2001"
+  },
+  {
+    "id": "P203012",
+    "name": "김지웅",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1970.04.07",
+    "phone": "010-6245-6837",
+    "email": "jw.kim@airpremia.com",
+    "address": "경기도 고양시 일산서구 일현로 97-11 (탄현동) 101-1204"
+  },
+  {
+    "id": "P203008",
+    "name": "경진수",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1967.09.13",
+    "phone": "010-4103-0747",
+    "email": "js.kyung@airpremia.com",
+    "address": "서울특별시특별시 서초구 잠원로14길 32 (잠원동) 105-2902"
+  },
+  {
+    "id": "P203009",
+    "name": "조성식",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1969.05.06",
+    "phone": "010-9978-0478",
+    "email": "ss.cho@airpremia.com",
+    "address": "서울특별시특별시 서초구 반포대로 275 (반포동) 111-2802"
+  },
+  {
+    "id": "P263013",
+    "name": "정호영",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1965.01.20",
+    "phone": "010-5447-6189",
+    "email": "hy.jung@airpremia.com",
+    "address": "서울특별시시 성북구 오패산로 46 두산 위브 114-1507"
+  },
+  {
+    "id": "P213004",
+    "name": "박규태",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1977.09.30",
+    "phone": "010-4548-7473",
+    "email": "gt.park@airpremia.com",
+    "address": "경기도 고양시 일산동구 위시티 4로 79, 305동 1804호"
+  },
+  {
+    "id": "P213005",
+    "name": "박형근",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1969.11.20",
+    "phone": "010-3238-2692",
+    "email": "hk.park@airpremia.com",
+    "address": "서울특별시시 송파구 올림픽로 99, 잠실엘스 151동 1401호"
+  },
+  {
+    "id": "P213006",
+    "name": "이동수",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1970.02.07",
+    "phone": "010-3353-6263",
+    "email": "dongs.lee@airpremia.com",
+    "address": "인천광역시 중구 두미포로 112 (중산동, e편한세상 영종국제도시 오션하임) 103동 2203호"
+  },
+  {
+    "id": "P213009",
+    "name": "정희중",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1975.06.08",
+    "phone": "010-9045-6930",
+    "email": "hj.jung@airpremia.com",
+    "address": "서울특별시 양천구 목동서로400 1021-1102"
+  },
+  {
+    "id": "P213010",
+    "name": "한정권",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1967.01.05",
+    "phone": "010-7547-5503",
+    "email": "jk.han@airpremia.com",
+    "address": "서울특별시시 서초구 방배중앙로 207-10, 방배아크로리버 101동 1201호"
+  },
+  {
+    "id": "P213003",
+    "name": "김훈",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1968.01.22",
+    "phone": "010-4353-0747",
+    "email": "h.kim@airpremia.com",
+    "address": "경기도 성남시 분당구 중앙공원로17, 321-805"
+  },
+  {
+    "id": "P213007",
+    "name": "정재훈",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1966.03.20",
+    "phone": "010-2657-6124",
+    "email": "jh.jeong@airpremia.com",
+    "address": "서울특별시시 마포구 독막로20나길 21, 래미안 밤섬 리베뉴2아파트 202동 801호"
+  },
+  {
+    "id": "P223009",
+    "name": "정권철",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1976.02.08",
+    "phone": "010-4606-1045",
+    "email": "kc.jung@airpremia.com",
+    "address": "서울특별시시 강서구 양천로47길 12, 105동 703호"
+  },
+  {
+    "id": "P223006",
+    "name": "김경석",
+    "role": "기장",
+    "position": "기장(파트장)",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1966.06.25",
+    "phone": "010-8028-0438",
+    "email": "ks.kim1@airpremia.com",
+    "address": "경기도 고양시 일산서구 대산로142 문촌마을3단지 우성APT, 308-1201"
+  },
+  {
+    "id": "P223005",
+    "name": "김경수",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1975.02.28",
+    "phone": "010-8930-3542",
+    "email": "ks.kim@airpremia.com",
+    "address": "서울특별시시 송파구 올림픽로 435,"
+  },
+  {
+    "id": "P223007",
+    "name": "유민상",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1974.08.20",
+    "phone": "010-9020-7009",
+    "email": "ms.yoo1@airpremia.com",
+    "address": "경기도 용인시 수지구 성복1로 157"
+  },
+  {
+    "id": "P223008",
+    "name": "윤태선",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1969.11.04",
+    "phone": "010-7758-0199",
+    "email": "ts.yun@airpremia.com",
+    "address": "서울특별시 강서구 양천로 564 101동1314호"
+  },
+  {
+    "id": "P223001",
+    "name": "최우진",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.05.16",
+    "appointDate": "",
+    "birthDate": "1983.08.17",
+    "phone": "010-2901-2091",
+    "email": "wj.choi@airpremia.com",
+    "address": "서울특별시 중구 만리재로 177, 서울특별시역 센트럴, 101동 801호"
+  },
+  {
+    "id": "P223013",
+    "name": "홍진영",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1984.02.25",
+    "phone": "010-8934-0819",
+    "email": "jy.hong@airpremia.com",
+    "address": "서울특별시시 강서구 마곡중앙1로 71 1305동 1202호"
+  },
+  {
+    "id": "P223011",
+    "name": "장명근",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1979.12.26",
+    "phone": "010-7112-2790",
+    "email": "mk.jang@airpremia.com",
+    "address": "경기도 김포시 수기로 67-54 115-804"
+  },
+  {
+    "id": "P223002",
+    "name": "김승재",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2022.05.16",
+    "appointDate": "",
+    "birthDate": "1982.04.04",
+    "phone": "010-4334-4848",
+    "email": "sj.kim1@airpremia.com",
+    "address": "서울특별시 은평구 수색로 200"
+  },
+  {
+    "id": "P203010",
+    "name": "이병욱",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.01.01",
+    "appointDate": "",
+    "birthDate": "1962.06.30",
+    "phone": "010-8909-7496",
+    "email": "bw.yi@airpremia.com",
+    "address": "경기도 고양시 일산서구 일산동 1069 후곡마을3단지아파트 305동 604호"
+  },
+  {
+    "id": "P213002",
+    "name": "김동환",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.01.01",
+    "appointDate": "",
+    "birthDate": "1962.04.03",
+    "phone": "010-4722-8573",
+    "email": "dongh.kim@airpremia.com",
+    "address": "경기도 파주시 미래로 422.110-1202"
+  },
+  {
+    "id": "P233011",
+    "name": "강흥건",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1973.03.04",
+    "phone": "010-2937-7185",
+    "email": "hk.kang@airpremia.com",
+    "address": "서울특별시 마포구 상암산로1길 92 (상암동, 상암월드컵파크 7단지) 709-1003"
+  },
+  {
+    "id": "P263009",
+    "name": "서동철",
+    "role": "기장",
+    "position": "기장(파트장)",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1965.12.10",
+    "phone": "010-9105-0530",
+    "email": "dc.suh@airpremia.com",
+    "address": "경기도 고양시 일산동구 일산로 205 (마두동, 백마마을2단지아파트) 202동202호"
+  },
+  {
+    "id": "P233020",
+    "name": "신민철",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1968.07.20",
+    "phone": "010-4276-2196",
+    "email": "mc.shin@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로 153 (마두동, 강촌마을3단지아파트) 307-1004"
+  },
+  {
+    "id": "P233012",
+    "name": "김영준",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1975.03.28",
+    "phone": "010-2710-0403",
+    "email": "yj.kim2@airpremia.com",
+    "address": "경기도 김포시 걸포1로 11 (걸포동, 오스타파라곤아파트) 106동 501호"
+  },
+  {
+    "id": "P233026",
+    "name": "최상준",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1971.09.16",
+    "phone": "010-2654-9747",
+    "email": "sj.choi1@airpremia.com",
+    "address": "서울특별시시 양천구 목동서로155,목동파라곤 106-2802"
+  },
+  {
+    "id": "P233014",
+    "name": "남궁명",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1968.09.23",
+    "phone": "010-6472-7104",
+    "email": "m.namkung@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로 195 (마두동, 강촌마을8단지아파트) 803동 1203호"
+  },
+  {
+    "id": "P233013",
+    "name": "김홍진",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1966.03.30",
+    "phone": "010-4358-5292",
+    "email": "hj.kim2@airpremia.com",
+    "address": "서울특별시 성동구 금호로 140 (금호동1가, 이편한세상금호파크힐스) 111-1202"
+  },
+  {
+    "id": "P233019",
+    "name": "신경호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1968.03.10",
+    "phone": "010-4228-3137",
+    "email": "gh.shin@airpremia.com",
+    "address": "서울특별시 강서구 강서로68길 108 (등촌동, 등촌동성아파트) 104-1601"
+  },
+  {
+    "id": "P233017",
+    "name": "박준성",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1967.02.12",
+    "phone": "010-2363-5554",
+    "email": "js.park3@airpremia.com",
+    "address": "경기도 시흥시 가재골1길 5 과림동 235"
+  },
+  {
+    "id": "P233023",
+    "name": "이장헌",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1968.02.01",
+    "phone": "010-6201-1694",
+    "email": "jh.lee3@airpremia.com",
+    "address": "경기도 고양시 덕양구 대덕산로 20 DMC한강자이더헤리티지 106동 2203호"
+  },
+  {
+    "id": "P233024",
+    "name": "전승호",
+    "role": "기장",
+    "position": "기장(팀장)",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1969.12.16",
+    "phone": "010-6284-2797",
+    "email": "sh.chun@airpremia.com",
+    "address": "서울특별시시 강서구 강서로 266 142동 104호"
+  },
+  {
+    "id": "P233022",
+    "name": "이석원",
+    "role": "기장",
+    "position": "기장(팀장)",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1972.09.18",
+    "phone": "010-4236-4631",
+    "email": "sw.lee1@airpremia.com",
+    "address": "서울특별시특별시 마포구 삼개로33 도화3지구 13-505"
+  },
+  {
+    "id": "P233025",
+    "name": "정진수",
+    "role": "기장",
+    "position": "기장(팀장)",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1970.08.11",
+    "phone": "010-9175-7076",
+    "email": "js.jung@airpremia.com",
+    "address": "인천 서구 청라한울로 17 (청라동, 청라 한라비발디) 391동 1604호"
+  },
+  {
+    "id": "P233016",
+    "name": "박병열",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1970.09.29",
+    "phone": "010-6362-0616",
+    "email": "bl.park@airpremia.com",
+    "address": "서울특별시 강서구 마곡중앙3로 74 (마곡동, 마곡힐스테이트) 102-1205"
+  },
+  {
+    "id": "P233033",
+    "name": "김선용",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.05.02",
+    "appointDate": "",
+    "birthDate": "1982.10.19",
+    "phone": "010-7478-7103",
+    "email": "sy.kim2@airpremia.com",
+    "address": "경기도 고양 일산서구 일신로 635 번길 24-12, 3층"
+  },
+  {
+    "id": "P233037",
+    "name": "임준호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.05.02",
+    "appointDate": "",
+    "birthDate": "1967.02.21",
+    "phone": "010-5316-3127",
+    "email": "jh.lim@airpremia.com",
+    "address": "서울특별시 영등포구 국제금융로 86 (여의도동, 롯데캐슬 아이비) 102동2904호"
+  },
+  {
+    "id": "P263011",
+    "name": "김용식",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.05.02",
+    "appointDate": "",
+    "birthDate": "1965.04.01",
+    "phone": "010-6860-3919",
+    "email": "ys.kim1@airpremia.com",
+    "address": "경기도 김포시 고촌읍 신곡로3번길 34-38 (신곡리, 강변마을 동부센트레빌) 202-801"
+  },
+  {
+    "id": "P233036",
+    "name": "이재현",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.05.02",
+    "appointDate": "",
+    "birthDate": "1973.05.25",
+    "phone": "010-2759-2535",
+    "email": "jh.lee5@airpremia.com",
+    "address": "서울특별시 강남구 삼성로 212 (대치동, 은마아파트) 11-504"
+  },
+  {
+    "id": "P233035",
+    "name": "이승현",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2023.05.02",
+    "appointDate": "",
+    "birthDate": "1971.10.30",
+    "phone": "010-9984-5459",
+    "email": "sh.lee3@airpremia.com",
+    "address": "경기도 수원시 영통구 매영로35번길 21-20 (매탄동) 3층"
+  },
+  {
+    "id": "P243001",
+    "name": "고희덕",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.01.10",
+    "appointDate": "",
+    "birthDate": "1963.05.28",
+    "phone": "010-3241-2765",
+    "email": "hd.ko@airpremia.com",
+    "address": "경기도 고양시 일산동구 위시티4로 79 (식사동, 위시티블루밍3단지아파트) 303동 1301호"
+  },
+  {
+    "id": "P243003",
+    "name": "김세훈",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1971.07.26",
+    "phone": "010-8512-2211",
+    "email": "seihoon.kim@airpremia.com",
+    "address": "경기도 성남시 중원구 금광로 26"
+  },
+  {
+    "id": "P243004",
+    "name": "김영길",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1974.02.28",
+    "phone": "010-4754-0390",
+    "email": "yeonggil.kim@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로 153 강촌3단지 311동 1002호"
+  },
+  {
+    "id": "P243005",
+    "name": "김일관",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1980.09.25",
+    "phone": "010-3066-4404",
+    "email": "ilkwan.kim@airpremia.com",
+    "address": "경기도 과천시 관문로 106, 103동 203호 (중앙동,과천푸르지오써밋)"
+  },
+  {
+    "id": "P243007",
+    "name": "김훈B",
+    "role": "기장",
+    "position": "기장(파트장)",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1976.12.25",
+    "phone": "010-9247-2836",
+    "email": "hoon.kim@airpremia.com",
+    "address": "인천 연수구 컨벤시아대로42번길 77, 903동 1602호"
+  },
+  {
+    "id": "P243009",
+    "name": "이창훈",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1978.05.16",
+    "phone": "010-4522-2629",
+    "email": "changhoon.lee@airpremia.com",
+    "address": "경기도 김포시 김포한강11로255번길 149, 101동 1601호"
+  },
+  {
+    "id": "P263012",
+    "name": "윤세기",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1965.09.03",
+    "phone": "010-7156-1303",
+    "email": "seki.yoon@airpremia.com",
+    "address": "경기도 고양시 일산동구 숲속마을로 68, 602동 1304호 (풍동,숲속마을)"
+  },
+  {
+    "id": "P243006",
+    "name": "김치윤",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1974.08.04",
+    "phone": "010-2269-6072",
+    "email": "chiyun.kim@airpremia.com",
+    "address": "경기도 남양주시 다산순환로 135, 3103동 402호 (다산동, 다산 유승한내들 골든뷰)"
+  },
+  {
+    "id": "P243010",
+    "name": "이혁제",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1975.09.18",
+    "phone": "010-8839-0787",
+    "email": "hyeokje.lee@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로113번길 54-7"
+  },
+  {
+    "id": "P243002",
+    "name": "강성준",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1980.02.20",
+    "phone": "010-9185-3778",
+    "email": "sungjun.kang@airpremia.com",
+    "address": "제주특별자치도 서귀포시 대정읍 에듀시티로 148, 127동 402호"
+  },
+  {
+    "id": "P243021",
+    "name": "이태권",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1969.05.19",
+    "phone": "010-5112-7587",
+    "email": "taekwon.lee@airpremia.com",
+    "address": "서울특별시 양천구 목동로 212. 710동 103호(목동, 목동신시가지아파트)"
+  },
+  {
+    "id": "P243020",
+    "name": "윤완석",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1966.09.30",
+    "phone": "010-6798-5080",
+    "email": "wanseok.yoon@airpremia.com",
+    "address": "서울특별시 송파구 양재대로 1218. 110동 802호(방이동, 올림픽 선수, 기자촌 아파트)"
+  },
+  {
+    "id": "P243022",
+    "name": "정남석",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1968.07.08",
+    "phone": "010-6297-6878",
+    "email": "namseok.jeong@airpremia.com",
+    "address": "서울특별시 강서구 양천로 344. 에이-1321호(마곡동, 마곡센트럴대방디엠시티오피스텔)"
+  },
+  {
+    "id": "P243027",
+    "name": "강호준",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1977.07.04",
+    "phone": "010-7440-7402",
+    "email": "hojun.kang@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로 33 101동 2406호"
+  },
+  {
+    "id": "P243029",
+    "name": "박양주",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1974.01.02",
+    "phone": "010-3226-4951",
+    "email": "yangjoo.park@airpremia.com",
+    "address": "서울특별시 마포구 성암로11길 60. 104동 105호"
+  },
+  {
+    "id": "P243033",
+    "name": "임동헌",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1966.01.07",
+    "phone": "010-4905-8488",
+    "email": "dongheon.lim@airpremia.com",
+    "address": "경기도 고양시 일산서구 하이파크3로 61. 신동아 파밀리에 아파트 402동 905호"
+  },
+  {
+    "id": "P243035",
+    "name": "전우태",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1982.01.28",
+    "phone": "010-5479-9082",
+    "email": "wootae.jeon@airpremia.com",
+    "address": "경기도 김포시 고촌읍 상미1로 7. 힐스테이트리버시티 208동 1003호"
+  },
+  {
+    "id": "P243028",
+    "name": "노영호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1971.12.21",
+    "phone": "010-2066-1218",
+    "email": "youngho.roh@airpremia.com",
+    "address": "서울특별시 영등포구 국제금융로 86.102동 1002호"
+  },
+  {
+    "id": "P243030",
+    "name": "송다비라",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1972.02.04",
+    "phone": "010-6778-8367",
+    "email": "dabila.song@airpremia.com",
+    "address": "경기도 고양시 일산동구 강석로 152. 선경 코오롱 709동 1505호"
+  },
+  {
+    "id": "P243031",
+    "name": "송우익",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1968.01.14",
+    "phone": "010-5257-0113",
+    "email": "wooik.song@airpremia.com",
+    "address": "서울특별시 양천구 목동서로 100. 목동아파트 325동 505호"
+  },
+  {
+    "id": "P243032",
+    "name": "이병문",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1976.03.25",
+    "phone": "010-4797-1957",
+    "email": "byoungmun.lee@airpremia.com",
+    "address": "경기도 고양시 일산동구 강석로 152. 강촌마을아파트 705동 701호"
+  },
+  {
+    "id": "P243034",
+    "name": "임승곤",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1969.04.04",
+    "phone": "010-5174-3424",
+    "email": "sunggon.lim@airpremia.com",
+    "address": "서울특별시 마포구 대흥로 175 마포그랑자이아파트 102동 1203호"
+  },
+  {
+    "id": "P243045",
+    "name": "이재형",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1966.01.28",
+    "phone": "010-4222-6365",
+    "email": "jaehyung.lee@airpremia.com",
+    "address": "서울특별시 강동구 천호대로170길 95,(성내동)"
+  },
+  {
+    "id": "P243047",
+    "name": "최봉근",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1983.01.02",
+    "phone": "010-4050-3424",
+    "email": "bongkeun.choi@airpremia.com",
+    "address": "인천 중구 은하수로 377,784동 2801호"
+  },
+  {
+    "id": "P243040",
+    "name": "김길주",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1970.02.19",
+    "phone": "010-2244-3634",
+    "email": "kiljoo.kim@airpremia.com",
+    "address": "서울특별시 강서구 강서로 532, 107동 1502호"
+  },
+  {
+    "id": "P243039",
+    "name": "강상진",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1974.12.14",
+    "phone": "010-6325-9860",
+    "email": "sangjin.kang@airpremia.com",
+    "address": "서울특별시 강서구 마곡서로 168,1303호"
+  },
+  {
+    "id": "P243046",
+    "name": "장재원",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1976.12.31",
+    "phone": "010-9398-0747",
+    "email": "jaewon.jang@airpremia.com",
+    "address": "인천 중구 숲쟁이로 12,103동 202호"
+  },
+  {
+    "id": "P243041",
+    "name": "김남호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1979.11.30",
+    "phone": "010-5474-7354",
+    "email": "namho.kim@airpremia.com",
+    "address": "서울특별시 양천구 목동동로 391, 1202호"
+  },
+  {
+    "id": "P243042",
+    "name": "나종석",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1968.01.13",
+    "phone": "010-2020-2081",
+    "email": "jongsuk.na@airpremia.com",
+    "address": "서울특별시 영등포구 의사당대로 110 미성APT A-1202"
+  },
+  {
+    "id": "P243043",
+    "name": "연정호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1968.07.30",
+    "phone": "010-5303-4826",
+    "email": "jungho.yun@airpremia.com",
+    "address": "경기도 부천시 원미구 소향로 18,2402동 1001호"
+  },
+  {
+    "id": "P243044",
+    "name": "이세찬",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1980.08.20",
+    "phone": "010-2107-6244",
+    "email": "sechan.lee@airpremia.com",
+    "address": "경기도 김포시 고촌읍 장차로5번길 33,501호"
+  },
+  {
+    "id": "P253001",
+    "name": "배총태",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2025.01.10",
+    "appointDate": "",
+    "birthDate": "1964.08.24",
+    "phone": "010-4711-3500",
+    "email": "ct.bae@airpremia.com",
+    "address": "인천광역시 중구 흰바위로 14 (운서동) 202-101"
+  },
+  {
+    "id": "P203022",
+    "name": "김진환",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1982.06.12",
+    "phone": "010-2816-9359",
+    "email": "jinhwan.kim@airpremia.com",
+    "address": "경기도 용인시 수지구 동천로153번길 6 (동천동) 1402-403"
+  },
+  {
+    "id": "P203018",
+    "name": "김동섭",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1972.08.04",
+    "phone": "010-5018-5698",
+    "email": "ds.kim@airpremia.com",
+    "address": "경기도 고양시 일산서구 고양대로255번길 46 킨텍스 아이파크 1001동 1102호"
+  },
+  {
+    "id": "P203019",
+    "name": "서호균",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1978.04.06",
+    "phone": "010-4904-8497",
+    "email": "hg.seo@airpremia.com",
+    "address": "인천 중구 하늘중앙로 271 725동 1403호"
+  },
+  {
+    "id": "P203015",
+    "name": "김은수",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1986.10.15",
+    "phone": "010-5093-9802",
+    "email": "es.kim@airpremia.com",
+    "address": "경기도 고양시 일산동구 강송로 196 113동 1202호"
+  },
+  {
+    "id": "P213011",
+    "name": "강달용",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1973.12.01",
+    "phone": "010-9870-4547",
+    "email": "dy.kang@airpremia.com",
+    "address": "서울특별시 강서구 양천로67가길 56, 805호"
+  },
+  {
+    "id": "P213014",
+    "name": "박일호",
+    "role": "기장",
+    "position": "기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1979.06.18",
+    "phone": "010-4335-1504",
+    "email": "ih.park@airpremia.com",
+    "address": "인천시 서구 청라커낼로 163, 호반베르디움 489동 2301호"
+  },
+  {
+    "id": "P263022",
+    "name": "김정성",
+    "role": "수습기장",
+    "position": "수습기장",
+    "joinDate": "2026.05.04",
+    "appointDate": "",
+    "birthDate": "19670814",
+    "phone": "010-8576-9135",
+    "email": "jungsung.kim@airpremia.com",
+    "address": "서울특별시 용산구 한강대로30길 25, 아스테리움용산 A-1604"
+  },
+  {
+    "id": "P263023",
+    "name": "이종근",
+    "role": "수습기장",
+    "position": "수습기장",
+    "joinDate": "2026.05.04",
+    "appointDate": "",
+    "birthDate": "19731003",
+    "phone": "010-9883-9259",
+    "email": "chongkun.yi@airpremia.com",
+    "address": "인천광역시 서구 청라커낼로 300, C동 1005호(청라동, 청라센트럴에일린의뜰)"
+  },
+  {
+    "id": "P263024",
+    "name": "장래향",
+    "role": "수습기장",
+    "position": "수습기장",
+    "joinDate": "2026.05.04",
+    "appointDate": "",
+    "birthDate": "19661215",
+    "phone": "010-5459-9386",
+    "email": "raehyang.jang@airpremia.com",
+    "address": "서울특별시 강서구 마곡서로 175, 마곡엠밸리4단지아파트 404동 903호"
+  }
+];
+
+const FO_DATA=[
+  {
+    "id": "P203021",
+    "name": "이정훈",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1985.05.23",
+    "phone": "010-3005-7652",
+    "email": "jh.lee@airpremia.com",
+    "address": "인천 중구 영종대로196번길 15-25 반도유보라 102-403"
+  },
+  {
+    "id": "P203013",
+    "name": "김지호",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1985.04.08",
+    "phone": "010-3775-1537",
+    "email": "jiho.kim@airpremia.com",
+    "address": "서울특별시특별시 강서구 강서로 348 (내발산동) 118-1504"
+  },
+  {
+    "id": "P203014",
+    "name": "이상호",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1980.08.18",
+    "phone": "010-5510-0451",
+    "email": "sh.lee@airpremia.com",
+    "address": "경기도 김포시 유현로 51 (풍무동) 212-104"
+  },
+  {
+    "id": "P203020",
+    "name": "이장영",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2020.04.16",
+    "appointDate": "",
+    "birthDate": "1974.12.14",
+    "phone": "010-9092-8526",
+    "email": "Jy.lee@airpremia.com",
+    "address": "인천 서구 경서로31번길 15, 103-205"
+  },
+  {
+    "id": "P213013",
+    "name": "이승민B",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1987.03.15",
+    "phone": "010-4500-7746",
+    "email": "smin.lee@airpremia.com",
+    "address": "경기도 용인시 수지구 신봉동 976, 동일하이빌 4단지 402동 1001호"
+  },
+  {
+    "id": "P213012",
+    "name": "김동욱",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2021.07.01",
+    "appointDate": "",
+    "birthDate": "1983.02.23",
+    "phone": "010-6648-1248",
+    "email": "dw.kim@airpremia.com",
+    "address": "인천 연수구 아트센터대로97번길 15 1103-2305"
+  },
+  {
+    "id": "P223003",
+    "name": "최재원",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2022.05.16",
+    "appointDate": "",
+    "birthDate": "1991.02.21",
+    "phone": "010-2304-8707",
+    "email": "jo.choi@airpremia.com",
+    "address": "인천 서구 이음1로 332 1807동2903호"
+  },
+  {
+    "id": "P223004",
+    "name": "김효승",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2022.05.16",
+    "appointDate": "",
+    "birthDate": "1982.05.12",
+    "phone": "010-2474-0785",
+    "email": "hs.kim@airpremia.com",
+    "address": "경기도 안양시 관악대로 106번길 53"
+  },
+  {
+    "id": "P223010",
+    "name": "김병욱",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1988.12.18",
+    "phone": "010-5128-4268",
+    "email": "bw.kim1@airpremia.com",
+    "address": "경기도 김포시 김포한강11로 276, 704동 905호"
+  },
+  {
+    "id": "P223012",
+    "name": "정상균",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2022.08.01",
+    "appointDate": "",
+    "birthDate": "1992.09.06",
+    "phone": "010-8791-9626",
+    "email": "sg.jung@airpremia.com",
+    "address": "인천 중구 두미포로 112 이편한세상오션하임 104동 1402호"
+  },
+  {
+    "id": "P233007",
+    "name": "이호석",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1992.10.02",
+    "phone": "010-2616-8768",
+    "email": "hs.lee1@airpremia.com",
+    "address": "경기도 화성시 동탄반석로 264 동탄예당마을 푸르지오 103동 301호"
+  },
+  {
+    "id": "P233003",
+    "name": "배기현",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1987.12.12",
+    "phone": "010-3080-7864",
+    "email": "kh.bae@airpremia.com",
+    "address": "서울특별시특별시 강서구 공항동 66-95, 502호"
+  },
+  {
+    "id": "P233005",
+    "name": "이은철",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1991.03.07",
+    "phone": "010-2073-7040",
+    "email": "ec.lee@airpremia.com",
+    "address": "인천 부평구 평천로305번길 15 (갈산동, 갈산이안아파트) 104동 1603호"
+  },
+  {
+    "id": "P233010",
+    "name": "최우석",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1993.05.24",
+    "phone": "010-8711-9470",
+    "email": "us.choi@airpremia.com",
+    "address": "서울특별시특별시 용산구 한강대로 211 102-2105"
+  },
+  {
+    "id": "P233006",
+    "name": "이준오",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1993.12.27",
+    "phone": "010-8782-1229",
+    "email": "jo.lee@airpremia.com",
+    "address": "서울특별시 강서구 마곡서1로 111-11 (마곡동, 마곡엠밸리5단지) 505동 202호"
+  },
+  {
+    "id": "P233002",
+    "name": "박태을",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.01.09",
+    "appointDate": "",
+    "birthDate": "1992.04.13",
+    "phone": "010-9883-2138",
+    "email": "te.park@airpremia.com",
+    "address": "인천 서구 크리스탈로74번길 13 더라포레 407호"
+  },
+  {
+    "id": "P233027",
+    "name": "구상회",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1988.01.21",
+    "phone": "010-9422-5802",
+    "email": "sh.gu@airpremia.com",
+    "address": "경기도 김포시 유현로 200 (풍무동, 풍무 푸르지오) 108동 203호"
+  },
+  {
+    "id": "P233032",
+    "name": "홍인식",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.03.02",
+    "appointDate": "",
+    "birthDate": "1988.10.31",
+    "phone": "010-5258-1469",
+    "email": "is.hong@airpremia.com",
+    "address": "경기도 김포시 운양동 1304-1 이랜드타운힐스 108동 2603호"
+  },
+  {
+    "id": "P233046",
+    "name": "정인보",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1994.02.10",
+    "phone": "010-2717-6320",
+    "email": "inbo.jung@airpremia.com",
+    "address": "서울특별시시 강서구 마곡서로 133, 701동 1004호 (마곡동, 마곡엠밸리7단지)"
+  },
+  {
+    "id": "P233045",
+    "name": "이하정",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1988.02.24",
+    "phone": "010-9955-1569",
+    "email": "hajeong.lee@airpremia.com",
+    "address": "경기도 김포시 김포한강11로 276, 712동 2102호(운양동, 풍경마을 한강신도시 반도유보라 2차)"
+  },
+  {
+    "id": "P233039",
+    "name": "김영석",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1990.09.13",
+    "phone": "010-3008-4550",
+    "email": "youngsuk.kim@airpremia.com",
+    "address": "경기도 김포시 고촌읍 수기로 67-54 수기마을 힐스테이트 1단지 120동 201호"
+  },
+  {
+    "id": "P233047",
+    "name": "정진규",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1990.01.14",
+    "phone": "010-3749-7803",
+    "email": "jinkyu.jeong@airpremia.com",
+    "address": "서울특별시시 양천구 신정중앙로 28, 602호 (신정동, 에비앙하우스)"
+  },
+  {
+    "id": "P233041",
+    "name": "박준회",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1988.10.19",
+    "phone": "010-8825-6617",
+    "email": "joonhoi.park@airpremia.com",
+    "address": "서울특별시 강서구 수명로2길 105 마곡수명산파크5단지 502동 1402호"
+  },
+  {
+    "id": "P233043",
+    "name": "윤정훈",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1995.04.01",
+    "phone": "010-9195-1303",
+    "email": "jeonghoon.yoon@airpremia.com",
+    "address": "경기도 고양시 일산동구 숲속마을로 68, 602동 1304호 (풍동, 숲속마을)"
+  },
+  {
+    "id": "P233040",
+    "name": "나종찬",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1995.06.19",
+    "phone": "010-5327-6391",
+    "email": "jongchan.na@airpremia.com",
+    "address": "서울특별시시 영등포구 당산로54길 11, 102동 802호 (당산동, 래미안당산1차아파트)"
+  },
+  {
+    "id": "P233038",
+    "name": "김나성",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1992.03.16",
+    "phone": "010-5113-1139",
+    "email": "nasung.kim@airpremia.com",
+    "address": "인천 연수구 인천타워대로 393 송도디에트르 시그니쳐뷰 201동 2105호"
+  },
+  {
+    "id": "P233044",
+    "name": "이관호",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1991.09.09",
+    "phone": "010-8998-9648",
+    "email": "kwanho.lee@airpremia.com",
+    "address": "서울특별시 노원구 중계로8길 106 111동707호"
+  },
+  {
+    "id": "P233042",
+    "name": "소병규",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1995.04.18",
+    "phone": "010-6462-3051",
+    "email": "byungkyu.so@airpremia.com",
+    "address": "충청남도 천안시 동남구 청수로 99, 105동 702호 (청수동, 극동아파트)"
+  },
+  {
+    "id": "P233048",
+    "name": "정한솔",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1990.05.29",
+    "phone": "010-5493-2955",
+    "email": "hansol.jeong@airpremia.com",
+    "address": "경기도 시흥시 은계중앙로 97, 504동 1108호 (은행동, 은계센트럴타운)"
+  },
+  {
+    "id": "P233049",
+    "name": "허완",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2023.09.04",
+    "appointDate": "",
+    "birthDate": "1992.08.12",
+    "phone": "010-5550-0706",
+    "email": "wan.huh@airpremia.com",
+    "address": "인천시 중구 영종대로196번길 7, 609호 (운서동, 스카이캐슬)"
+  },
+  {
+    "id": "P243017",
+    "name": "이정곤",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1991.02.03",
+    "phone": "010-9851-9135",
+    "email": "jeongkon.lee@airpremia.com",
+    "address": "서울특별시 금천구 벚꽃로 100, 107동 2902호"
+  },
+  {
+    "id": "P243019",
+    "name": "황성민",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1990.05.07",
+    "phone": "010-4785-4168",
+    "email": "seongmin.hwang@airpremia.com",
+    "address": "경기도 양평군 용문면 상진1길 25-8"
+  },
+  {
+    "id": "P243011",
+    "name": "김상연",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1992.03.23",
+    "phone": "010-5589-8913",
+    "email": "sangyeon.kim@airpremia.com",
+    "address": "경기도 고양시 일산서구 강선로 33 1401-105"
+  },
+  {
+    "id": "P243013",
+    "name": "문종태",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1990.11.16",
+    "phone": "010-2703-9264",
+    "email": "jongtae.moon@airpremia.com",
+    "address": "인천 서구 청라한내로 132, 652동 1402호"
+  },
+  {
+    "id": "P243015",
+    "name": "박영욱",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1983.03.27",
+    "phone": "010-4126-9848",
+    "email": "yongwook.park@airpremia.com",
+    "address": "서울특별시 서대문구 거북골로 84 DMC에코자이 105동 1606호"
+  },
+  {
+    "id": "P243018",
+    "name": "조준상",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1991.12.07",
+    "phone": "010-6474-3165",
+    "email": "junsang.jo@airpremia.com",
+    "address": "서울특별시 강서구 공항대로 18-1, 411호"
+  },
+  {
+    "id": "P243012",
+    "name": "김현수",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1987.12.26",
+    "phone": "010-8737-1280",
+    "email": "hyunsoo.kim@airpremia.com",
+    "address": "경기도 용인시 기흥구 관곡로 53, 신안아파트 601동 1704호"
+  },
+  {
+    "id": "P243016",
+    "name": "이상규",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1987.12.15",
+    "phone": "010-9747-1041",
+    "email": "sangkyu.yi@airpremia.com",
+    "address": "서울특별시 양천구 월정로 303, 103동 706호 (신월동,수명산롯데캐슬)"
+  },
+  {
+    "id": "P243014",
+    "name": "박성욱",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.05.02",
+    "appointDate": "",
+    "birthDate": "1990.06.19",
+    "phone": "010-6339-8485",
+    "email": "seongwook.park@airpremia.com",
+    "address": "서울특별시 강서구 공항대로71길 54, 101동 202호 (염창동,태진한솔아파트)"
+  },
+  {
+    "id": "P243025",
+    "name": "조석현",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1990.12.25",
+    "phone": "010-4043-7925",
+    "email": "seokhyun.jo@airpremia.com",
+    "address": "경기도 김포시 풍무로 128. 714호(풍무동)"
+  },
+  {
+    "id": "P243023",
+    "name": "김성훈B",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1988.12.03",
+    "phone": "010-4066-0051",
+    "email": "seonghun.kim2@airpremia.com",
+    "address": "인천 서구 청라한내로 40 596동 1903호"
+  },
+  {
+    "id": "P243026",
+    "name": "한재훈",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1992.02.07",
+    "phone": "010-4543-0207",
+    "email": "jaehoon.han@airpremia.com",
+    "address": "서울특별시 강서구 강서로68길 35, 314호"
+  },
+  {
+    "id": "P243024",
+    "name": "이학현",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.07.01",
+    "appointDate": "",
+    "birthDate": "1984.04.12",
+    "phone": "010-8252-2525",
+    "email": "hakhyun.lee@airpremia.com",
+    "address": "서울특별시 강서구 공항대로 382. 103동 2303호(화곡동, 우장산롯데캐슬)"
+  },
+  {
+    "id": "P243037",
+    "name": "최동찬",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1991.04.20",
+    "phone": "010-7726-8462",
+    "email": "dongchan.choi@airpremia.com",
+    "address": "인천광역시 연수구 랜드마크로160 더샵송도마리나베이 114동 1402호"
+  },
+  {
+    "id": "P243036",
+    "name": "윤지열",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1985.07.22",
+    "phone": "010-8907-1020",
+    "email": "jiyeol.yoon@airpremia.com",
+    "address": "서울특별시 강서구 공항대로4가길 13-5. 중앙캐슬 604호"
+  },
+  {
+    "id": "P243038",
+    "name": "최윤준",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.09.02",
+    "appointDate": "",
+    "birthDate": "1983.05.31",
+    "phone": "010-8555-7578",
+    "email": "yoonjun.choi@airpremia.com",
+    "address": "서울특별시 서초구 신반포로 270 반포자이아파트 133동 1301호"
+  },
+  {
+    "id": "P243049",
+    "name": "이재일",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1985.11.12",
+    "phone": "010-4810-2171",
+    "email": "jaeil.lee@airpremia.com",
+    "address": "경기도 김포시 청송로 19, 청송마을 현대홈타운 3단지 302동 1703호"
+  },
+  {
+    "id": "P243048",
+    "name": "박성진",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1989.05.01",
+    "phone": "010-3009-0501",
+    "email": "sungjin.park@airpremia.com",
+    "address": "경기도 김포시 모담공원로 16,504동 106호"
+  },
+  {
+    "id": "P243050",
+    "name": "이태호B",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1983.05.29",
+    "phone": "010-5202-2678",
+    "email": "taeho.lee@airpremia.com",
+    "address": "서울특별시 동작구 성대로25길 10-6,201호"
+  },
+  {
+    "id": "P243052",
+    "name": "최정웅",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1985.08.28",
+    "phone": "010-8840-5527",
+    "email": "jeongwoong.choi@airpremia.com",
+    "address": "서울특별시 동작구 여의대방로 22, 11동 1009호"
+  },
+  {
+    "id": "P243051",
+    "name": "정범수",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2024.11.04",
+    "appointDate": "",
+    "birthDate": "1991.01.10",
+    "phone": "010-8416-1998",
+    "email": "bumsoo.jung@airpremia.com",
+    "address": "경기도 김포시 김포한강3로 290-13,601동 1903호"
+  },
+  {
+    "id": "P604105",
+    "name": "김윤현",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1982.06.04",
+    "phone": "010-6246-6038",
+    "email": "yunhyun.kim@airpremia.com",
+    "address": "경기도 부천시 원미구 신흥로 150-1 위브더스테이트 803동 601호"
+  },
+  {
+    "id": "P701851",
+    "name": "이정준",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1984.04.21",
+    "phone": "010-8780-0430",
+    "email": "jungjun.lee@airpremia.com",
+    "address": "경기도 용인시 수지구 수지로 166 109동 702호(풍덕천동, 정자뜰마을 태영 데시앙1차 아파트)"
+  },
+  {
+    "id": "P803303",
+    "name": "남성식",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1981.12.14",
+    "phone": "010-7271-3883",
+    "email": "sungsik.nam@airpremia.com",
+    "address": "서울특별시특별시 서초구 사평대로8길 14-1 502호"
+  },
+  {
+    "id": "P803443",
+    "name": "김영욱",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1981.02.11",
+    "phone": "010-4790-2717",
+    "email": "yeonguk.kim@airpremia.com",
+    "address": "인천광역시 서구 고산로 19 109동 902호(원당동, 대한항공아파트)"
+  },
+  {
+    "id": "P803852",
+    "name": "심효영",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1983.02.17",
+    "phone": "010-8663-1618",
+    "email": "hyoyoung.sim@airpremia.com",
+    "address": "경기도 안양시 만안구 박달로507번길 57 301동 808호(박달동, 한신휴플러스 타운)"
+  },
+  {
+    "id": "P900076",
+    "name": "김동우B",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1981.02.07",
+    "phone": "010-9088-0207",
+    "email": "dongwoo.kim@airpremia.com",
+    "address": "서울특별시특별시 송파구 올림픽로 435 207동 2901호(신천동, 파크리오)"
+  },
+  {
+    "id": "P900102",
+    "name": "손창우",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1984.07.20",
+    "phone": "010-6473-0700",
+    "email": "changwoo.son@airpremia.com",
+    "address": "서울특별시특별시 송파구 올림픽로4길 15 아시아선수촌아파트 8동 902호"
+  },
+  {
+    "id": "P604002",
+    "name": "조성진",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1983.07.05",
+    "phone": "010-3341-0522",
+    "email": "sungjin.cho@airpremia.com",
+    "address": "경기도 김포시 고촌읍 수기로 67-54 107동 1001호(수기마을힐스테이트1단지)"
+  },
+  {
+    "id": "P702330",
+    "name": "조병준",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1985.02.14",
+    "phone": "010-2999-1815",
+    "email": "byungjun.cho@airpremia.com",
+    "address": "인천광역시 연수구 인천타워대로 393 디에트르송도시그니처뷰 101-202"
+  },
+  {
+    "id": "P702816",
+    "name": "정성원",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.04.01",
+    "appointDate": "",
+    "birthDate": "1985.01.09",
+    "phone": "010-5582-8520",
+    "email": "sungwon.jung@airpremia.com",
+    "address": "인천광역시 서구 원당대로839번길 34 엘지원당자이아파트 707동 1303호"
+  },
+  {
+    "id": "P253002",
+    "name": "김태현C",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1986.07.30",
+    "phone": "010-3055-6317",
+    "email": "taehyun.kim@airpremia.com",
+    "address": "서울특별시 강서구 강서로 426, 1007호"
+  },
+  {
+    "id": "P253003",
+    "name": "박의충",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1985.01.31",
+    "phone": "010-9822-2906",
+    "email": "uichung.park@airpremia.com",
+    "address": "부산 강서구 명지국제5로 110, 301동 403호"
+  },
+  {
+    "id": "P253004",
+    "name": "이동건",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1988.11.10",
+    "phone": "010-9744-5541",
+    "email": "donggun.lee@airpremia.com",
+    "address": "서울특별시 양천구 신월로 99, 17동 1107호"
+  },
+  {
+    "id": "P253005",
+    "name": "이보행",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1989.11.04",
+    "phone": "010-9131-7049",
+    "email": "bohaeng.lee@airpremia.com",
+    "address": "경기도 고양시 일산서구 킨텍스로 240 203동 1505호"
+  },
+  {
+    "id": "P253006",
+    "name": "이재봉",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1987.01.02",
+    "phone": "010-9204-4403",
+    "email": "jaebong.lee@airpremia.com",
+    "address": "서울특별시 마포구 만리재로 36 104-701"
+  },
+  {
+    "id": "P253007",
+    "name": "임창훈",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1988.11.09",
+    "phone": "010-9278-1109",
+    "email": "changhun.lim@airpremia.com",
+    "address": "경기도 시흥시 은계남로 12 1303동 2304호"
+  },
+  {
+    "id": "P253008",
+    "name": "홍경수",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.05.12",
+    "appointDate": "",
+    "birthDate": "1984.08.09",
+    "phone": "010-2081-1176",
+    "email": "kyungsoo.hong@airpremia.com",
+    "address": "서울특별시 서초구 마방로10길 34-15"
+  },
+  {
+    "id": "P253020",
+    "name": "현경원",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1993.07.29",
+    "phone": "010-4028-2837",
+    "email": "gyeongwon.hyeon@airpremia.com",
+    "address": "부산 동래구 아시아드대로255번가길 28, 501호"
+  },
+  {
+    "id": "P253011",
+    "name": "권기태",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1991.11.23",
+    "phone": "010-7566-7153",
+    "email": "kitae.kwon@airpremia.com",
+    "address": "경기도 부천시 경인로548번길 27-15, 502호"
+  },
+  {
+    "id": "P253013",
+    "name": "김우창",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1994.01.29",
+    "phone": "010-8986-3608",
+    "email": "woochang.kim@airpremia.com",
+    "address": "서울특별시 서초구 잠원로14길 32, 105동 1802호"
+  },
+  {
+    "id": "P253014",
+    "name": "김정환",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1993.01.08",
+    "phone": "010-7394-3312",
+    "email": "jeonghwan.kim@airpremia.com",
+    "address": "서울특별시특별시 용산구 원효로19길 3-5"
+  },
+  {
+    "id": "P253015",
+    "name": "안상진",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1993.07.26",
+    "phone": "010-8662-7026",
+    "email": "sangjin.an@airpremia.com",
+    "address": "경기도 시흥시 옥구천동로 399, 216동 304호"
+  },
+  {
+    "id": "P253017",
+    "name": "이민재",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1997.07.06",
+    "phone": "010-4715-1796",
+    "email": "minjae.lee@airpremia.com",
+    "address": "서울특별시특별시 강서구 공항대로 302, (센터스퀘어 발산) 102동 1602호"
+  },
+  {
+    "id": "P253018",
+    "name": "장서연",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1996.06.08",
+    "phone": "010-3214-9386",
+    "email": "seoyoun.jang@airpremia.com",
+    "address": "서울특별시특별시 강서구 마곡서로 175, 404동 903호 (마곡동,마곡엠밸리4단지"
+  },
+  {
+    "id": "P253019",
+    "name": "한현재",
+    "role": "부기장",
+    "position": "부기장",
+    "joinDate": "2025.07.01",
+    "appointDate": "",
+    "birthDate": "1998.11.11",
+    "phone": "010-2275-5280",
+    "email": "hyunjae.han@airpremia.com",
+    "address": "서울특별시 강서구 방화동로 124"
+  },
+  {
+    "id": "P263001",
+    "name": "김선우",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1999.08.15",
+    "phone": "010-6527-3337",
+    "email": "sunwoo.kim@airpremia.com",
+    "address": "경기도 용인시 수지구 신봉 1로 216, 604동 1504호"
+  },
+  {
+    "id": "P263002",
+    "name": "김영걸",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1996.12.03",
+    "phone": "010-6625-2656",
+    "email": "younggeol.kim@airpremia.com",
+    "address": "인천시 서구 완정로 117번길 13 로하스타운 B동 102호"
+  },
+  {
+    "id": "P263003",
+    "name": "김창균",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1997.05.03",
+    "phone": "010-4257-3435",
+    "email": "changgyun.kim@airpremia.com",
+    "address": "경기도 의정부시 평화로 150번길 26, 206-401"
+  },
+  {
+    "id": "P263004",
+    "name": "박성우",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1996.05.29",
+    "phone": "010-9912-7597",
+    "email": "sungwoo.park@airpremia.com",
+    "address": "서울특별시시 용산구 녹사평대로 254, 남산대림아파트 105동 506호"
+  },
+  {
+    "id": "P263005",
+    "name": "박의명",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1997.09.07",
+    "phone": "010-2360-3396",
+    "email": "eimyoung.park@airpremia.com",
+    "address": "경기도 화성시 병점노을로 31,103동 2504호"
+  },
+  {
+    "id": "P263006",
+    "name": "배재욱",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1999.10.15",
+    "phone": "010-7296-9905",
+    "email": "jaeuk.bae@airpremia.com",
+    "address": "서울특별시시 중랑구 동일로 476, 늘푸른동아아파트 103동 108호"
+  },
+  {
+    "id": "P263007",
+    "name": "채상원",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1999.06.25",
+    "phone": "010-5107-8151",
+    "email": "sangwon.chai@airpremia.com",
+    "address": "경기도 남양주시 장현천로 174-5, 르씨엘빌라 201동 101호"
+  },
+  {
+    "id": "P263008",
+    "name": "허노준",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.01.05",
+    "appointDate": "",
+    "birthDate": "1991.01.07",
+    "phone": "010-9185-2454",
+    "email": "nojun.heo@airpremia.com",
+    "address": "서울특별시특별시 강서구 강서로 443, 대명투웨니퍼스트 503호"
+  },
+  {
+    "id": "P263014",
+    "name": "김동일",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1991.07.16",
+    "phone": "010-2080-5193",
+    "email": "dongil.kim@airpremia.com",
+    "address": "서울특별시특별시 양천구 목동중앙본로7길 14-6, 401호"
+  },
+  {
+    "id": "P263015",
+    "name": "송승호",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1998.02.26",
+    "phone": "010-6588-6006",
+    "email": "seungho.song@airpremia.com",
+    "address": "대구광역시 북구 동천로24길 12, 201동 1806호"
+  },
+  {
+    "id": "P263016",
+    "name": "송호섭",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1996.06.19",
+    "phone": "010-3096-6692",
+    "email": "hoseop.song@airpremia.com",
+    "address": "경기도 구리시 수택천로 60, 102동 2003호"
+  },
+  {
+    "id": "P263017",
+    "name": "신규철",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1996.08.26",
+    "phone": "010-8664-6125",
+    "email": "kyuchul.shin@airpremia.com",
+    "address": "부산광역시 남구 분포로 113, 217동 904호"
+  },
+  {
+    "id": "P263018",
+    "name": "정현우",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1999.06.30",
+    "phone": "010-4902-4523",
+    "email": "hyeonwoo.joung@airpremia.com",
+    "address": "인천광역시 연수구 컨벤시아대로252번길 30, 1504동 3202호"
+  },
+  {
+    "id": "P263019",
+    "name": "최경민",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1996.07.30",
+    "phone": "010-3875-0287",
+    "email": "kyungmin.choi@airpremia.com",
+    "address": "경기도 안양시 만안구 병목안로 81, 103동 902호"
+  },
+  {
+    "id": "P263020",
+    "name": "최성원",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "1997.08.31",
+    "phone": "010-3263-7966",
+    "email": "seongwon.choi@airpremia.com",
+    "address": "서울특별시특별시 강남구 개포로110길 43"
+  },
+  {
+    "id": "P263021",
+    "name": "한유경",
+    "role": "수습부기장",
+    "position": "수습부기장",
+    "joinDate": "2026.03.03",
+    "appointDate": "",
+    "birthDate": "2000.04.18",
+    "phone": "010-6343-4773",
+    "email": "yukyoung.han@airpremia.com",
+    "address": "경기도 고양시 덕양구 화중로 164"
+  }
+];
+
+function normalizePerson(p){
+  return {
+    name:p.name||"",
+    id:p.id||"",
+    role:p.role||"부기장",
+    position:p.position||p.role||"",
+    joinDate:p.joinDate||"",
+    appointDate:p.appointDate||"",
+    birthDate:p.birthDate||"",
+    phone:p.phone||"",
+    email:p.email||"",
+    address:p.address||"",
+  };
+}
+
+function applyRoleOverrides(captains, fos){
+  const moveSet = new Set(UPGRADE_TRAINEE_IDS);
+  const trainees = captains
+    .filter(p => moveSet.has(p.id))
+    .map(p => ({...p, role:"기장승격훈련요원", position:"기장승격훈련요원"}));
+  return {
+    captains: captains.filter(p => !moveSet.has(p.id)),
+    fos: [...trainees, ...fos.filter(p => !moveSet.has(p.id))],
+  };
+}
 
 function savePhoto(id, dataUrl) {
-  try {
-    localStorage.setItem(PHOTO_PREFIX + id, dataUrl);
-  } catch(e) {
-    // localStorage 용량 초과(보통 5MB) 시 경고
-    console.warn("사진 저장 실패 (용량 초과 가능성):", e);
-    showToast("저장 공간 부족으로 사진을 저장하지 못했습니다.", "err");
-  }
+  try { localStorage.setItem(PHOTO_PREFIX + id, dataUrl); }
+  catch(e) { showToast("저장 공간 부족으로 사진을 저장하지 못했습니다.", "err"); }
 }
 
 function loadAllPhotos() {
@@ -72,44 +2339,36 @@ function loadAllPhotos() {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(PHOTO_PREFIX)) {
-        const id = key.slice(PHOTO_PREFIX.length);
-        photos[id] = localStorage.getItem(key);
-      }
+      if (key && key.startsWith(PHOTO_PREFIX)) photos[key.slice(PHOTO_PREFIX.length)] = localStorage.getItem(key);
     }
-  } catch(e) {
-    console.warn("사진 로딩 실패:", e);
-  }
+  } catch(e) { console.warn("사진 로딩 실패:", e); }
   return photos;
 }
 
 function deletePhoto(id) {
-  try {
-    localStorage.removeItem(PHOTO_PREFIX + id);
-  } catch(e) {}
+  try { localStorage.removeItem(PHOTO_PREFIX + id); } catch(e) {}
 }
-
-// ========================= 명단 데이터 영구 저장 헬퍼 =========================
-// 키: "crew_captains" / "crew_fos" → JSON 문자열
-const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
 
 function saveCrewData() {
   try {
     localStorage.setItem(CREW_KEYS.captains, JSON.stringify(state.captains));
-    localStorage.setItem(CREW_KEYS.fos,      JSON.stringify(state.fos));
+    localStorage.setItem(CREW_KEYS.fos, JSON.stringify(state.fos));
+    localStorage.setItem(CREW_VERSION_KEY, CREW_DATA_VERSION);
   } catch(e) {
-    console.warn("명단 저장 실패:", e);
     showToast("저장 공간 부족으로 명단을 저장하지 못했습니다.", "err");
   }
 }
 
 function loadCrewData() {
   try {
+    if (localStorage.getItem(CREW_VERSION_KEY) !== CREW_DATA_VERSION) {
+      return { captains: null, fos: null };
+    }
     const caps = localStorage.getItem(CREW_KEYS.captains);
-    const fos  = localStorage.getItem(CREW_KEYS.fos);
+    const fos = localStorage.getItem(CREW_KEYS.fos);
     return {
-      captains: caps ? JSON.parse(caps) : null,
-      fos:      fos  ? JSON.parse(fos)  : null,
+      captains: caps ? JSON.parse(caps).map(normalizePerson) : null,
+      fos: fos ? JSON.parse(fos).map(normalizePerson) : null,
     };
   } catch(e) {
     console.warn("명단 로딩 실패:", e);
@@ -117,240 +2376,50 @@ function loadCrewData() {
   }
 }
 
-// ========================= 역할 메타 =========================
-const ROLE_META={
-  "기장":           {bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
-  "훈련기장":       {bg:"#eaf3de",text:"#27500a",border:"#3b6d11"},
-  "기장승격훈련요원":{bg:"#faeeda",text:"#633806",border:"#854f0b"},
-  "부기장":         {bg:"#eeedfe",text:"#3c3489",border:"#534ab7"},
-  "수습부기장":     {bg:"#faece7",text:"#712b13",border:"#993c1d"},
-};
-
-// ========================= 기장 데이터 =========================
-const CAP_DATA=[
-  {id:"P190001",name:"임원길",  role:"기장",position:"기장/운항본부장",             joinDate:"2019.03.01",appointDate:"2021.06.07"},
-  {id:"P263010",name:"유우룡",  role:"기장",position:"기장/운항승무팀장/비행교관",  joinDate:"2020.03.02",appointDate:"2021.04.29"},
-  {id:"P233022",name:"이석원",  role:"기장",position:"기장/운항표준팀장/위촉심사관",joinDate:"2023.03.02",appointDate:"2023.06.30"},
-  {id:"P233025",name:"정진수",  role:"기장",position:"기장/운항품질팀장",           joinDate:"2023.03.02",appointDate:"2023.07.28"},
-  {id:"P233024",name:"전승호",  role:"기장",position:"기장/운항훈련팀장/비행교관", joinDate:"2023.03.02",appointDate:"2023.06.16"},
-  {id:"P243007",name:"김훈B",   role:"기장",position:"기장/운항안전파트장",         joinDate:"2024.05.02",appointDate:"2024.09.13"},
-  {id:"P213011",name:"강달용",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2025.06.16"},
-  {id:"P243039",name:"강상진",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.06.13"},
-  {id:"P243002",name:"강성준",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.04"},
-  {id:"P243027",name:"강호준",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.03"},
-  {id:"P233011",name:"강흥건",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.07.24"},
-  {id:"P203008",name:"경진수",  role:"기장",position:"기장/위촉심사관",             joinDate:"2020.04.16",appointDate:"2020.09.25"},
-  {id:"P213001",name:"고희덕",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.26"},
-  {id:"P223006",name:"김경석",  role:"기장",position:"기장/운항승무1파트장",        joinDate:"2022.08.01",appointDate:"2023.03.03"},
-  {id:"P223005",name:"김경수",  role:"기장",position:"기장",joinDate:"2022.08.01",appointDate:"2023.04.07"},
-  {id:"P999001",name:"김길주",  role:"기장",position:"기장",joinDate:"",appointDate:""},
-  {id:"P243041",name:"김남호",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.05.19"},
-  {id:"P203018",name:"김동섭",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.06.25"},
-  {id:"P213002",name:"김동환",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.09.16"},
-  {id:"P233033",name:"김선용",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.07.14"},
-  {id:"P243003",name:"김세훈",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.25"},
-  {id:"P243004",name:"김영길",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.09.20"},
-  {id:"P233012",name:"김영준",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.06.12"},
-  {id:"P203006",name:"김영필",  role:"기장",position:"기장/위촉심사관",             joinDate:"2020.03.02",appointDate:"2020.09.27"},
-  {id:"P263011",name:"김용식",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.25"},
-  {id:"P203015",name:"김은수",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.07.02"},
-  {id:"P243005",name:"김일관",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.30"},
-  {id:"P203012",name:"김지웅",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2021.10.29"},
-  {id:"P203022",name:"김진환",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.06.18"},
-  {id:"P243006",name:"김치윤",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.10.23"},
-  {id:"P233013",name:"김홍진",  role:"기장",position:"기장/비행교관",               joinDate:"2023.03.02",appointDate:"2023.05.22"},
-  {id:"P213003",name:"김훈",    role:"기장",position:"기장/위촉심사관",             joinDate:"2021.07.01",appointDate:"2022.07.08"},
-  {id:"P243042",name:"나종석",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.04.30"},
-  {id:"P233014",name:"남궁명",  role:"기장",position:"기장/비행교관",               joinDate:"2023.03.02",appointDate:"2023.08.11"},
-  {id:"P243028",name:"노영호",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.01.31"},
-  {id:"P213004",name:"박규태",  role:"기장",position:"기장/비행교관",               joinDate:"2021.07.01",appointDate:"2023.02.03"},
-  {id:"P233016",name:"박병열",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.08.16"},
-  {id:"P243029",name:"박양주",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.12"},
-  {id:"P213014",name:"박일호",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2025.07.04"},
-  {id:"P233017",name:"박준성",  role:"기장",position:"기장/비행교관",               joinDate:"2023.03.02",appointDate:"2023.06.28"},
-  {id:"P213005",name:"박형근",  role:"기장",position:"기장/비행교관",               joinDate:"2021.07.01",appointDate:"2022.09.30"},
-  {id:"P203007",name:"배총태",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2020.09.26"},
-  {id:"P263009",name:"서동철",  role:"기장",position:"기장/운항승무2파트장",        joinDate:"2023.03.02",appointDate:"2023.08.18"},
-  {id:"P203019",name:"서호균",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2025.07.17"},
-  {id:"P243030",name:"송다비라",role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.07"},
-  {id:"P243031",name:"송우익",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.18"},
-  {id:"P233019",name:"신경호",  role:"기장",position:"기장/비행교관",               joinDate:"2023.03.02",appointDate:"2023.07.07"},
-  {id:"P193002",name:"신동훈",  role:"기장",position:"기장",joinDate:"2019.09.02",appointDate:"2021.10.20"},
-  {id:"P233020",name:"신민철",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.07.31"},
-  {id:"P203004",name:"신지수",  role:"기장",position:"기장",joinDate:"2020.03.02",appointDate:"2021.06.09"},
-  {id:"P243043",name:"연정호",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2024.04.25"},
-  {id:"P203001",name:"위충석",  role:"기장",position:"기장",joinDate:"2020.02.03",appointDate:"2021.10.14"},
-  {id:"P223007",name:"유민상",  role:"기장",position:"기장/비행교관",               joinDate:"2022.08.01",appointDate:"2023.04.20"},
-  {id:"P263012",name:"윤세기",  role:"기장",position:"기장/비행교관",               joinDate:"2024.05.02",appointDate:"2024.09.09"},
-  {id:"P243020",name:"윤완석",  role:"기장",position:"기장",joinDate:"2024.07.01",appointDate:"2024.08.12"},
-  {id:"P223008",name:"윤태선",  role:"기장",position:"기장",joinDate:"2022.08.01",appointDate:"2023.03.27"},
-  {id:"P213006",name:"이동수",  role:"기장",position:"기장/비행교관",               joinDate:"2021.07.01",appointDate:"2022.12.13"},
-  {id:"P243032",name:"이병문",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.02.17"},
-  {id:"P203010",name:"이병욱",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2021.05.13"},
-  {id:"P243044",name:"이세찬",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.06.26"},
-  {id:"P233035",name:"이승현",  role:"기장",position:"기장/비행교관",               joinDate:"2023.05.02",appointDate:"2023.10.04"},
-  {id:"P193001",name:"이은상",  role:"기장",position:"기장",joinDate:"2019.07.01",appointDate:"2021.09.17"},
-  {id:"P233023",name:"이장헌",  role:"기장",position:"기장/비행교관",               joinDate:"2023.03.02",appointDate:"2023.06.19"},
-  {id:"P233036",name:"이재현",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.22"},
-  {id:"P243045",name:"이재형",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2024.12.27"},
-  {id:"P203002",name:"이중엽",  role:"기장",position:"기장/비행교관",               joinDate:"2020.02.03",appointDate:"2021.09.30"},
-  {id:"P243009",name:"이창훈",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.08"},
-  {id:"P243021",name:"이태권",  role:"기장",position:"기장",joinDate:"2024.07.01",appointDate:"2024.08.21"},
-  {id:"P243010",name:"이혁제",  role:"기장",position:"기장",joinDate:"2024.05.02",appointDate:"2024.11.15"},
-  {id:"P243033",name:"임동헌",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.21"},
-  {id:"P243034",name:"임승곤",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2025.03.31"},
-  {id:"P233037",name:"임준호",  role:"기장",position:"기장",joinDate:"2023.05.02",appointDate:"2023.09.20"},
-  {id:"P243046",name:"장재원",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.05.23"},
-  {id:"P243035",name:"전우태",  role:"기장",position:"기장",joinDate:"2024.09.02",appointDate:"2024.04.02"},
-  {id:"P203011",name:"전지혁",  role:"기장",position:"기장",joinDate:"2020.04.16",appointDate:"2022.02.23"},
-  {id:"P223009",name:"정권철",  role:"기장",position:"기장/비행교관",               joinDate:"2022.08.01",appointDate:"2023.03.31"},
-  {id:"P243022",name:"정남석",  role:"기장",position:"기장/비행교관",               joinDate:"2024.07.01",appointDate:"2024.08.23"},
-  {id:"P213007",name:"정재훈",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.23"},
-  {id:"P263013",name:"정호영",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2022.11.18"},
-  {id:"P213009",name:"정희중",  role:"기장",position:"기장",joinDate:"2021.07.01",appointDate:"2023.01.28"},
-  {id:"P203009",name:"조성식",  role:"기장",position:"기장/위촉심사관",             joinDate:"2020.04.16",appointDate:"2020.09.27"},
-  {id:"P243047",name:"최봉근",  role:"기장",position:"기장",joinDate:"2024.11.04",appointDate:"2025.01.03"},
-  {id:"P233026",name:"최상준",  role:"기장",position:"기장",joinDate:"2023.03.02",appointDate:"2023.06.23"},
-  {id:"P213010",name:"한정권",  role:"기장",position:"기장/위촉심사관",             joinDate:"2021.07.01",appointDate:"2022.08.11"},
-  {id:"P263022",name:"김정성",  role:"훈련기장",position:"훈련기장",joinDate:"2026.05.04",appointDate:""},
-  {id:"P263023",name:"이종근",  role:"훈련기장",position:"훈련기장",joinDate:"2026.05.04",appointDate:""},
-  {id:"P263024",name:"장래향",  role:"훈련기장",position:"훈련기장",joinDate:"2026.05.04",appointDate:""},
-];
-
-// ========================= 부기장 데이터 =========================
-const FO_DATA=[
-  {id:"P223001",name:"최우진",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.05.16",appointDate:"2022.12.26"},
-  {id:"P223002",name:"김승재",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.05.16",appointDate:"2023.01.13"},
-  {id:"P223011",name:"장명근",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.08.01",appointDate:"2023.02.17"},
-  {id:"P223013",name:"홍진영",  role:"기장승격훈련요원",position:"기장승격훈련요원",joinDate:"2022.08.01",appointDate:"2023.02.24"},
-  {id:"P203020",name:"이장영",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2021.05.31"},
-  {id:"P203021",name:"이정훈",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2021.10.15"},
-  {id:"P203013",name:"김지호",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2022.03.11"},
-  {id:"P203014",name:"이상호",  role:"부기장",position:"부기장",joinDate:"2020.04.16",appointDate:"2022.03.18"},
-  {id:"P213012",name:"김동욱",  role:"부기장",position:"부기장",joinDate:"2021.07.01",appointDate:"2022.07.01"},
-  {id:"P213013",name:"이승민",  role:"부기장",position:"부기장",joinDate:"2021.07.01",appointDate:"2022.07.22"},
-  {id:"P223004",name:"김효승",  role:"부기장",position:"부기장",joinDate:"2022.05.16",appointDate:"2022.12.28"},
-  {id:"P223003",name:"최재원",  role:"부기장",position:"부기장",joinDate:"2022.05.16",appointDate:"2023.01.11"},
-  {id:"P223012",name:"정상균",  role:"부기장",position:"부기장",joinDate:"2022.08.01",appointDate:"2023.03.06"},
-  {id:"P223010",name:"김병욱",  role:"부기장",position:"부기장",joinDate:"2022.08.01",appointDate:"2023.03.17"},
-  {id:"P233002",name:"박태을",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.12"},
-  {id:"P233003",name:"배기현",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.23"},
-  {id:"P233005",name:"이은철",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.10"},
-  {id:"P233006",name:"이준오",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.19"},
-  {id:"P233007",name:"이호석",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.10.17"},
-  {id:"P233010",name:"최우석",  role:"부기장",position:"부기장",joinDate:"2023.01.09",appointDate:"2023.07.05"},
-  {id:"P233027",name:"구상회",  role:"부기장",position:"부기장",joinDate:"2023.03.02",appointDate:"2023.11.28"},
-  {id:"P233032",name:"홍인식",  role:"부기장",position:"부기장",joinDate:"2023.03.02",appointDate:"2023.12.24"},
-  {id:"P233038",name:"김나성",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.04.29"},
-  {id:"P233039",name:"김영석",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.16"},
-  {id:"P233040",name:"나종찬",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.02"},
-  {id:"P233041",name:"박준회",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.13"},
-  {id:"P233042",name:"소병규",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.05.19"},
-  {id:"P233043",name:"윤정훈",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.05.03"},
-  {id:"P233044",name:"이관호",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.04.06"},
-  {id:"P233045",name:"이하정",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.06.24"},
-  {id:"P233046",name:"정인보",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.03"},
-  {id:"P233047",name:"정진규",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.03"},
-  {id:"P233048",name:"정한솔",  role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.03.14"},
-  {id:"P233049",name:"허완",    role:"부기장",position:"부기장",joinDate:"2023.09.04",appointDate:"2024.02.25"},
-  {id:"P243011",name:"김상연",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.26"},
-  {id:"P243012",name:"김현수",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.19"},
-  {id:"P243013",name:"문종태",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.12.07"},
-  {id:"P243014",name:"박성욱",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.10.30"},
-  {id:"P243015",name:"박영욱",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.06"},
-  {id:"P243016",name:"이상규",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.24"},
-  {id:"P243017",name:"이정곤",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.09.16"},
-  {id:"P243018",name:"조준상",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2025.04.10"},
-  {id:"P243019",name:"황성민",  role:"부기장",position:"부기장",joinDate:"2024.05.02",appointDate:"2024.11.25"},
-  {id:"P243023",name:"김성훈B", role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.30"},
-  {id:"P243024",name:"이학현",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.17"},
-  {id:"P243025",name:"조석현",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.28"},
-  {id:"P243026",name:"한재훈",  role:"부기장",position:"부기장",joinDate:"2024.07.01",appointDate:"2024.12.26"},
-  {id:"P243036",name:"윤지열",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.05.12"},
-  {id:"P243037",name:"최동찬",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.04.04"},
-  {id:"P243038",name:"최윤준",  role:"부기장",position:"부기장",joinDate:"2024.09.02",appointDate:"2025.04.05"},
-  {id:"P243048",name:"박성진",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.22"},
-  {id:"P243049",name:"이재일",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.20"},
-  {id:"P243050",name:"이태호B", role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.05.25"},
-  {id:"P243051",name:"정범수",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.04.29"},
-  {id:"P243052",name:"최정웅",  role:"부기장",position:"부기장",joinDate:"2024.11.04",appointDate:"2025.06.05"},
-  {id:"P604002",name:"조성진",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.04"},
-  {id:"P604105",name:"김윤현",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.15"},
-  {id:"P702330",name:"조병준",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.01"},
-  {id:"P702816",name:"정성원",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.08"},
-  {id:"P803303",name:"남성식",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.05.27"},
-  {id:"P803443",name:"김영욱",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.06"},
-  {id:"P803852",name:"심효영",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.17"},
-  {id:"P900076",name:"김동우B", role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.21"},
-  {id:"P900102",name:"손창우",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.18"},
-  {id:"P701851",name:"이정준",  role:"부기장",position:"부기장",joinDate:"2025.04.01",appointDate:"2025.06.10"},
-  {id:"P253002",name:"김태현C", role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.10"},
-  {id:"P253003",name:"박의충",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.24"},
-  {id:"P253004",name:"이동건",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.29"},
-  {id:"P253005",name:"이보행",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.01"},
-  {id:"P253006",name:"이재봉",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.23"},
-  {id:"P253007",name:"임창훈",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.09.30"},
-  {id:"P253008",name:"홍경수",  role:"부기장",position:"부기장",joinDate:"2025.05.12",appointDate:"2025.10.01"},
-  {id:"P253020",name:"현경원",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2025.12.25"},
-  {id:"P253011",name:"권기태",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.02"},
-  {id:"P253013",name:"김우창",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
-  {id:"P253014",name:"김정환",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.04"},
-  {id:"P253015",name:"안상진",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
-  {id:"P253017",name:"이민재",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:"2026.01.09"},
-  {id:"P253018",name:"장서연",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
-  {id:"P253019",name:"한현재",  role:"부기장",position:"부기장",joinDate:"2025.07.01",appointDate:""},
-  {id:"P263001",name:"김선우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263002",name:"김영걸",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263003",name:"김창균",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263004",name:"박성우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263005",name:"박의명",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263006",name:"배재욱",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263007",name:"채상원",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263008",name:"허노준",  role:"수습부기장",position:"수습부기장",joinDate:"2026.01.05",appointDate:""},
-  {id:"P263014",name:"김동일",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263015",name:"송승호",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263016",name:"송호섭",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263017",name:"신규철",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263018",name:"정현우",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263019",name:"최경민",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263020",name:"최성원",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-  {id:"P263021",name:"한유경",  role:"수습부기장",position:"수습부기장",joinDate:"2026.03.03",appointDate:""},
-];
-
-// ========================= 상태 =========================
-// localStorage에 저장된 명단이 있으면 우선 사용, 없으면 초기 데이터 사용
-const _saved = loadCrewData();
+const saved = loadCrewData();
+const initialCrew = applyRoleOverrides(
+  (saved.captains || CAP_DATA).map(normalizePerson),
+  (saved.fos || FO_DATA).map(normalizePerson)
+);
 let state={
-  captains: _saved.captains || [...CAP_DATA],
-  fos:      _saved.fos      || [...FO_DATA],
-  photos: loadAllPhotos(),   // ← 앱 시작 시 localStorage에서 즉시 동기 로딩
+  captains:initialCrew.captains,
+  fos:initialCrew.fos,
+  photos:loadAllPhotos(),
+  view:"photos",
   tab:"기장",
   search:"",
   filterRole:"전체",
   modal:null,
-  form:{name:"",id:"",role:"부기장",position:"",joinDate:"",appointDate:""},
+  form:emptyForm("부기장"),
   editId:null,
+  editList:null,
   confirmPerson:null,
   promotePerson:null,
   formPhotoPreview:null,
 };
 
-// ========================= 역할 메타 =========================
-const ROLE_META_KEYS=Object.keys(ROLE_META);
-
-// ========================= 유틸 =========================
 let toastTimer=null;
+
+function emptyForm(role){
+  return {name:"",id:"",role,position:role,joinDate:"",appointDate:"",birthDate:"",phone:"",email:"",address:""};
+}
+
+function allCrew(){return [...state.captains,...state.fos];}
+function getList(){return state.tab==="기장"?state.captains:state.fos;}
+function getAvailRoles(){return state.tab==="기장"?["기장","훈련기장","수습기장"]:["기장승격훈련요원","부기장","수습부기장"];}
+function currentListName(){return state.editList || state.tab;}
+
+function escapeHtml(v){
+  return String(v ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function showToast(msg,type="ok"){
   clearTimeout(toastTimer);
   const t=document.getElementById("toast");
   if(!t)return;
   t.textContent=msg;
   t.style.display="block";
-  const styles={
-    ok: {bg:"#eaf3de",color:"#27500a",border:"#3b6d11"},
-    err:{bg:"#fcebeb",color:"#791f1f",border:"#e24b4a"},
-    warn:{bg:"#faeeda",color:"#633806",border:"#854f0b"}
-  };
+  const styles={ok:{bg:"#eaf3de",color:"#27500a",border:"#3b6d11"},err:{bg:"#fcebeb",color:"#791f1f",border:"#e24b4a"},warn:{bg:"#faeeda",color:"#633806",border:"#854f0b"}};
   const s=styles[type]||styles.ok;
   Object.assign(t.style,{background:s.bg,color:s.color,border:`0.5px solid ${s.border}`});
   toastTimer=setTimeout(()=>{t.style.display="none";},2800);
@@ -363,48 +2432,42 @@ function today(){
 
 function mkBadge(role){
   const m=ROLE_META[role]||ROLE_META["부기장"];
-  return `<span class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${role}</span>`;
+  return `<span class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${escapeHtml(role)}</span>`;
 }
 
 function mkAvatar(name,role,size=76){
   const m=ROLE_META[role]||ROLE_META["부기장"];
   const ch=name?name[0]:"?";
-  return `<div style="width:${size}px;height:${size}px;border-radius:8px;background:${m.bg};border:1.5px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.38)}px;font-weight:500;color:${m.text};flex-shrink:0;user-select:none">${ch}</div>`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:8px;background:${m.bg};border:1.5px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.38)}px;font-weight:500;color:${m.text};flex-shrink:0;user-select:none">${escapeHtml(ch)}</div>`;
 }
 
 function mkPhotoCell(p,size=76){
   const src=state.photos[p.id];
-  const inner=src
-    ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block"/>`
-    :mkAvatar(p.name,p.role,size);
-  return `<div class="photo-wrap" data-photoid="${p.id}" style="width:${size}px;height:${size}px" title="클릭하여 사진 변경">
-    ${inner}
-    <div class="photo-overlay">📷</div>
-  </div>`;
+  const inner=src ? `<img src="${src}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block"/>` : mkAvatar(p.name,p.role,size);
+  return `<div class="photo-wrap" data-photoid="${escapeHtml(p.id)}" style="width:${size}px;height:${size}px" title="클릭하여 사진 변경">${inner}<div class="photo-overlay">사진</div></div>`;
 }
 
 function mkCard(p){
   const canPromote=state.tab==="부기장"&&(p.role==="부기장"||p.role==="기장승격훈련요원");
-  const posExtra=p.position&&p.position!==p.role
-    ?`<div style="font-size:10px;color:#888;margin-top:3px;line-height:1.4">${p.position}</div>`:"";
+  const posExtra=p.position&&p.position!==p.role ? `<div style="font-size:10px;color:#888;margin-top:3px;line-height:1.4">${escapeHtml(p.position)}</div>`:"";
   return `<div class="card">
     <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:10px">
       ${mkPhotoCell(p,74)}
       <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:500;color:#111;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-        <div style="font-family:monospace;font-size:11px;color:#aaa;margin-bottom:5px">${p.id}</div>
+        <div style="font-size:15px;font-weight:500;color:#111;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.name)}</div>
+        <div style="font-family:monospace;font-size:11px;color:#aaa;margin-bottom:5px">${escapeHtml(p.id)}</div>
         ${mkBadge(p.role)}
         ${posExtra}
       </div>
     </div>
     <div class="info-grid">
-      <div><div class="info-label">입사년월</div><div class="info-val">${p.joinDate||"-"}</div></div>
-      <div><div class="info-label">임명일</div><div class="info-val">${p.appointDate||"-"}</div></div>
+      <div><div class="info-label">입사년월</div><div class="info-val">${escapeHtml(p.joinDate||"-")}</div></div>
+      <div><div class="info-label">임명일</div><div class="info-val">${escapeHtml(p.appointDate||"-")}</div></div>
     </div>
     <div class="actions">
-      <button onclick="openEdit('${p.id}')">수정</button>
-      ${canPromote?`<button onclick="openPromote('${p.id}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5">기장 승격</button>`:""}
-      <button onclick="openDelete('${p.id}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a">퇴사</button>
+      <button onclick="openEdit('${escapeHtml(p.id)}')">수정</button>
+      ${canPromote?`<button onclick="openPromote('${escapeHtml(p.id)}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5">기장 승격</button>`:""}
+      <button onclick="openDelete('${escapeHtml(p.id)}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a">퇴사</button>
     </div>
   </div>`;
 }
@@ -412,8 +2475,8 @@ function mkCard(p){
 function mkStats(){
   const cnt={};
   Object.keys(ROLE_META).forEach(r=>cnt[r]=0);
-  [...state.captains,...state.fos].forEach(p=>{if(cnt[p.role]!==undefined)cnt[p.role]++;});
-  return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px">
+  allCrew().forEach(p=>{if(cnt[p.role]!==undefined)cnt[p.role]++;});
+  return `<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:18px">
     ${Object.entries(ROLE_META).map(([r,m])=>`
       <div class="stat-card" style="background:${m.bg};border:0.5px solid ${m.border}">
         <div style="font-size:10px;color:${m.text};font-weight:500;margin-bottom:3px">${r}</div>
@@ -422,49 +2485,112 @@ function mkStats(){
   </div>`;
 }
 
-function getList(){return state.tab==="기장"?state.captains:state.fos;}
-function getAvailRoles(){return state.tab==="기장"?["기장","훈련기장"]:["기장승격훈련요원","부기장","수습부기장"];}
-
-function filtered(){
-  const s=state.search.trim();
-  return getList().filter(p=>{
-    const ms=!s||p.name.includes(s)||p.id.includes(s)||p.position.includes(s);
-    const mr=state.filterRole==="전체"||p.role===state.filterRole;
-    return ms&&mr;
-  });
+function matchSearch(p){
+  const s=state.search.trim().toLowerCase();
+  const hay=[p.name,p.id,p.role,p.position,p.joinDate,p.appointDate,p.birthDate,p.phone,p.email,p.address].join(" ").toLowerCase();
+  return !s || hay.includes(s);
 }
 
-// ========================= 모달 HTML =========================
+function filtered(){
+  return getList().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole));
+}
+
+function filteredAll(){
+  return allCrew().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole));
+}
+
+function mkTopControls(){
+  const roles=state.view==="photos" ? getAvailRoles() : Object.keys(ROLE_META);
+  const roleOpts=["전체",...roles].map(r=>`<option value="${r}"${state.filterRole===r?" selected":""}>${r}</option>`).join("");
+  return `<div class="grid-controls">
+    ${state.view==="photos"?`<div class="tabs">
+      <button class="tab${state.tab==="기장"?" active":""}" onclick="setTab('기장')">기장 (${state.captains.length})</button>
+      <button class="tab${state.tab==="부기장"?" active":""}" onclick="setTab('부기장')">부기장 (${state.fos.length})</button>
+    </div>`:""}
+    <input type="text" id="search-inp" value="${escapeHtml(state.search)}" placeholder="이름·사번·직책·연락처 검색" style="flex:1;min-width:170px" oninput="state.search=this.value;render()"/>
+    <select onchange="state.filterRole=this.value;render()" style="width:150px">${roleOpts}</select>
+    ${state.view==="photos"?`
+      <button onclick="document.getElementById('bulk-photo-inp').click()" title="파일명=사번으로 일괄 업로드">사진 일괄</button>
+      <input type="file" id="bulk-photo-inp" accept="image/*" multiple style="display:none" onchange="handleBulkPhotos(this)"/>
+      <button onclick="doPrint()">PDF 출력</button>
+    `:`<button onclick="downloadExcel()" style="background:#eaf3de;color:#27500a;border-color:#3b6d11;font-weight:500">Excel 다운로드</button>`}
+    <button onclick="openAdd()" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">+ 신규 입사</button>
+  </div>`;
+}
+
+function mkHrTable(){
+  const list=filteredAll();
+  return `<div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>구분</th><th>성명</th><th>사번</th><th>직위</th><th>직위/직책 세부</th>
+        <th>입사일</th><th>임명일</th><th>생년월일</th><th>휴대폰</th><th>이메일</th><th>주소</th><th>관리</th>
+      </tr></thead>
+      <tbody>
+      ${list.length===0?`<tr><td colspan="12" style="padding:40px;text-align:center;color:#bbb">검색 결과가 없습니다</td></tr>`:""}
+      ${list.map(p=>`<tr>
+        <td>${state.captains.some(x=>x.id===p.id)?"기장":"부기장"}</td>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td style="font-family:monospace;color:#777">${escapeHtml(p.id)}</td>
+        <td>${mkBadge(p.role)}</td>
+        <td>${escapeHtml(p.position||"-")}</td>
+        <td>${escapeHtml(p.joinDate||"-")}</td>
+        <td>${escapeHtml(p.appointDate||"-")}</td>
+        <td>${escapeHtml(p.birthDate||"-")}</td>
+        <td>${escapeHtml(p.phone||"-")}</td>
+        <td>${escapeHtml(p.email||"-")}</td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.address||"-")}</td>
+        <td><button onclick="openEdit('${escapeHtml(p.id)}')">수정</button></td>
+      </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right">${list.length}명 표시</div>`;
+}
+
 function mkFormModal(){
   const isEdit=!!state.editId;
   const f=state.form;
-  const roles=getAvailRoles();
+  const listName=currentListName();
+  const roles=listName==="기장"?["기장","훈련기장","수습기장"]:["기장승격훈련요원","부기장","수습부기장"];
   const photoHtml=state.formPhotoPreview
     ?`<img src="${state.formPhotoPreview}" style="width:72px;height:80px;object-fit:cover;border-radius:8px;display:block"/>`
-    :`<div style="width:72px;height:80px;border-radius:8px;background:#f5f5f5;border:1.5px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:22px">📷</div>`;
+    :`<div style="width:72px;height:80px;border-radius:8px;background:#f5f5f5;border:1.5px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999">사진</div>`;
+  const textFields=[
+    ["성명 *","name","홍길동","text"],["사번 *","id","P253099","text"],["입사일","joinDate","2026.01.05","text"],
+    ["임명일","appointDate","2026.06.01","text"],["생년월일","birthDate","1990.01.01","text"],["휴대폰","phone","010-0000-0000","tel"],
+    ["이메일","email","name@example.com","email"],["주소","address","서울시 ...","text"],["직위/직책 세부","position","기장/비행교관","text"],
+  ];
   return `<div class="overlay" id="modal-overlay">
     <div class="modal">
       <div style="font-size:16px;font-weight:500;margin-bottom:16px">${isEdit?"승무원 정보 수정":"신규 입사 등록"}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="fl">명단 구분 *</label>
+          <select id="ff-listName"${isEdit?" disabled":""}>
+            <option value="기장"${listName==="기장"?" selected":""}>기장 명단</option>
+            <option value="부기장"${listName==="부기장"?" selected":""}>부기장 명단</option>
+          </select>
+        </div>
+        <div>
+          <label class="fl">직위 *</label>
+          <select id="ff-role">${roles.map(r=>`<option value="${r}"${f.role===r?" selected":""}>${r}</option>`).join("")}</select>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
         <div style="cursor:pointer" id="modal-photo-btn" title="사진 업로드">${photoHtml}</div>
         <div>
           <div style="font-size:13px;font-weight:500;margin-bottom:3px">인물 사진</div>
-          <div style="font-size:11px;color:#999;line-height:1.5">클릭하여 업로드<br>자동으로 동일 크기 적용</div>
+          <div style="font-size:11px;color:#999;line-height:1.5">사진 명단에만 표시됩니다.<br>인사정보 Excel에는 포함하지 않습니다.</div>
         </div>
       </div>
       <input type="file" id="modal-photo-file" accept="image/*" style="display:none"/>
-      <div style="display:grid;gap:10px">
-        ${[["성명 *","name","홍길동"],["사번 *","id","P253099"],["입사년월 *","joinDate","2026.01.05"],["임명일","appointDate","2026.06.01"],["직위/직책 세부","position","기장/비행교관"]].map(([lbl,key,ph])=>`
-          <div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${textFields.map(([lbl,key,ph,type])=>`
+          <div style="${key==="address"?"grid-column:1/-1":""}">
             <label class="fl">${lbl}</label>
-            <input type="text" id="ff-${key}" value="${f[key]||""}" placeholder="${ph}" style="width:100%;box-sizing:border-box"/>
+            <input type="${type}" id="ff-${key}" value="${escapeHtml(f[key]||"")}" placeholder="${ph}"/>
           </div>`).join("")}
-        <div>
-          <label class="fl">직위 *</label>
-          <select id="ff-role" style="width:100%">
-            ${roles.map(r=>`<option value="${r}"${f.role===r?" selected":""}>${r}</option>`).join("")}
-          </select>
-        </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
         <button onclick="closeModal()">취소</button>
@@ -479,70 +2605,56 @@ function mkConfirmModal(person,type){
   if(type==="delete"){
     return `<div class="overlay"><div class="modal" style="width:340px">
       <div style="font-size:16px;font-weight:500;margin-bottom:10px">퇴사 처리 확인</div>
-      <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${person.name}</strong> (${person.id})을 퇴사 처리하시겠습니까?</p>
+      <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${escapeHtml(person.name)}</strong> (${escapeHtml(person.id)})을 퇴사 처리하시겠습니까?</p>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button onclick="closeModal()">취소</button>
-        <button onclick="doDelete('${person.id}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a;font-weight:500">퇴사 처리</button>
+        <button onclick="doDelete('${escapeHtml(person.id)}')" style="background:#fcebeb;color:#791f1f;border-color:#e24b4a;font-weight:500">퇴사 처리</button>
       </div>
     </div></div>`;
   }
   return `<div class="overlay"><div class="modal" style="width:360px">
     <div style="font-size:16px;font-weight:500;margin-bottom:10px">기장 승격 확인</div>
-    <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${person.name}</strong> 부기장을 기장으로 승격하시겠습니까?<br><span style="font-size:12px;color:#aaa">임명일: ${today()} 자동 기입</span></p>
+    <p style="font-size:14px;color:#555;margin-bottom:18px"><strong style="color:#111">${escapeHtml(person.name)}</strong> 부기장을 기장으로 승격하시겠습니까?<br><span style="font-size:12px;color:#aaa">임명일: ${today()} 자동 기입</span></p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button onclick="closeModal()">취소</button>
-      <button onclick="doPromote('${person.id}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">승격 확정</button>
+      <button onclick="doPromote('${escapeHtml(person.id)}')" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">승격 확정</button>
     </div>
   </div></div>`;
 }
 
-// ========================= 렌더 =========================
 function render(){
   const list=filtered();
-  const availRoles=getAvailRoles();
-  const roleOpts=["전체",...availRoles].map(r=>`<option value="${r}"${state.filterRole===r?" selected":""}>${r}</option>`).join("");
-
   let modalHtml="";
-  if(state.modal==="form")         modalHtml=mkFormModal();
-  else if(state.modal==="delete")  modalHtml=mkConfirmModal(state.confirmPerson,"delete");
+  if(state.modal==="form") modalHtml=mkFormModal();
+  else if(state.modal==="delete") modalHtml=mkConfirmModal(state.confirmPerson,"delete");
   else if(state.modal==="promote") modalHtml=mkConfirmModal(state.promotePerson,"promote");
 
-  // localStorage에 저장된 사진 수 표시
-  const photoCount = Object.keys(state.photos).length;
-  const photoInfo = photoCount > 0
-    ? `<strong style="color:#27500a">사진 ${photoCount}장 저장됨</strong>`
-    : `사진 업로드 후 <strong style="color:#27500a">새로고침해도 유지</strong>됨`;
+  const photoCount=Object.keys(state.photos).length;
+  const photoInfo=photoCount>0?`사진 ${photoCount}장 저장됨`:`사진 업로드 후 새로고침해도 유지됨`;
 
   document.getElementById("app").innerHTML=`
     <div style="margin-bottom:16px">
-      <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">✈ 에어프레미아 운항승무원 명단 관리</div>
-      <div style="font-size:13px;color:#888">사진 클릭으로 개별 등록 · 일괄 업로드 · PDF 출력 · ${photoInfo}</div>
+      <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">에어프레미아 운항승무원 인사 관리</div>
+      <div style="font-size:13px;color:#888">사진 명단은 기존 카드 정보 중심으로 유지 · 인사정보는 별도 표와 Excel 다운로드 제공 · ${photoInfo}</div>
     </div>
     ${mkStats()}
-    <div class="grid-controls">
-      <div class="tabs">
-        <button class="tab${state.tab==="기장"?" active":""}" onclick="setTab('기장')">기장 (${state.captains.length})</button>
-        <button class="tab${state.tab==="부기장"?" active":""}" onclick="setTab('부기장')">부기장 (${state.fos.length})</button>
+    <div class="tabs main-tabs">
+      <button class="tab${state.view==="photos"?" active":""}" onclick="setView('photos')">사진 명단</button>
+      <button class="tab${state.view==="hr"?" active":""}" onclick="setView('hr')">인사정보</button>
+    </div>
+    ${mkTopControls()}
+    ${state.view==="photos"?`
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+        ${list.length===0?`<div style="grid-column:1/-1;padding:40px;text-align:center;color:#bbb;font-size:14px">검색 결과가 없습니다</div>`:""}
+        ${list.map(mkCard).join("")}
       </div>
-      <input type="text" id="search-inp" value="${state.search}" placeholder="이름·사번·직책 검색" style="flex:1;min-width:130px" oninput="state.search=this.value;render()"/>
-      <select onchange="state.filterRole=this.value;render()">${roleOpts}</select>
-      <button onclick="document.getElementById('bulk-photo-inp').click()" title="파일명=사번으로 일괄 업로드">📂 사진 일괄</button>
-      <input type="file" id="bulk-photo-inp" accept="image/*" multiple style="display:none" onchange="handleBulkPhotos(this)"/>
-      <button onclick="doPrint()">🖨 PDF 출력</button>
-      <button onclick="openAdd()" style="background:#e6f1fb;color:#0c447c;border-color:#185fa5;font-weight:500">+ 신규 입사</button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
-      ${list.length===0?`<div style="grid-column:1/-1;padding:40px;text-align:center;color:#bbb;font-size:14px">검색 결과가 없습니다</div>`:""}
-      ${list.map(mkCard).join("")}
-    </div>
-    <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right">${list.length}명 표시</div>
+      <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right">${list.length}명 표시</div>
+    `:mkHrTable()}
     ${modalHtml}
     <div id="toast" style="display:none" class="toast"></div>
   `;
 
-  document.querySelectorAll(".photo-wrap[data-photoid]").forEach(el=>{
-    el.onclick=()=>pickPhoto(el.dataset.photoid);
-  });
+  document.querySelectorAll(".photo-wrap[data-photoid]").forEach(el=>{ el.onclick=()=>pickPhoto(el.dataset.photoid); });
 
   if(state.modal==="form"){
     const photobtn=document.getElementById("modal-photo-btn");
@@ -557,14 +2669,15 @@ function render(){
         e.target.value="";
       };
     }
-    ["name","id","joinDate","appointDate","position","role"].forEach(k=>{
+    const listSelect=document.getElementById("ff-listName");
+    if(listSelect) listSelect.onchange=()=>{ state.editList=listSelect.value; state.form.role=state.editList==="기장"?"기장":"부기장"; state.form.position=state.form.role; render(); };
+    ["name","id","joinDate","appointDate","birthDate","phone","email","address","position","role"].forEach(k=>{
       const el=document.getElementById("ff-"+k);
       if(el)el.oninput=el.onchange=()=>{state.form[k]=el.value;};
     });
   }
 }
 
-// ========================= 액션 함수 =========================
 function pickPhoto(id){
   const inp=document.createElement("input");
   inp.type="file";inp.accept="image/*";
@@ -574,9 +2687,9 @@ function pickPhoto(id){
     r.onload=ev=>{
       const dataUrl=ev.target.result;
       state.photos[id]=dataUrl;
-      savePhoto(id, dataUrl);   // ← localStorage에 즉시 저장
+      savePhoto(id,dataUrl);
       render();
-      showToast("사진이 저장되었습니다. 새로고침 후에도 유지됩니다.");
+      showToast("사진이 저장되었습니다.");
     };
     r.readAsDataURL(file);
   };
@@ -590,34 +2703,48 @@ function handleBulkPhotos(inp){
     const base=file.name.replace(/\.[^.]+$/,"");
     const r=new FileReader();
     r.onload=ev=>{
-      const dataUrl=ev.target.result;
-      state.photos[base]=dataUrl;
-      savePhoto(base, dataUrl);  // ← localStorage에 즉시 저장
+      state.photos[base]=ev.target.result;
+      savePhoto(base,ev.target.result);
       done++;
       resolve();
     };
     r.readAsDataURL(file);
   }));
-  Promise.all(saves).then(()=>{
-    render();
-    showToast(`사진 ${done}장 저장 완료. 새로고침 후에도 유지됩니다.`);
-    inp.value="";
-  });
+  Promise.all(saves).then(()=>{render();showToast(`사진 ${done}장 저장 완료`);inp.value="";});
 }
 
+function setView(v){state.view=v;state.filterRole="전체";render();}
 function setTab(t){state.tab=t;state.filterRole="전체";render();}
-function closeModal(){state.modal=null;state.confirmPerson=null;state.promotePerson=null;render();}
+function closeModal(){state.modal=null;state.confirmPerson=null;state.promotePerson=null;state.editList=null;render();}
 
 function openAdd(){
-  const r=getAvailRoles()[0];
-  state.form={name:"",id:"",role:r,position:r,joinDate:"",appointDate:""};
-  state.formPhotoPreview=null;state.editId=null;state.modal="form";render();
+  const listName=state.view==="photos"?state.tab:"부기장";
+  const role=listName==="기장"?"기장":"부기장";
+  state.form=emptyForm(role);
+  state.editList=listName;
+  state.formPhotoPreview=null;
+  state.editId=null;
+  state.modal="form";
+  render();
+}
+
+function findPerson(id){
+  const cap=state.captains.find(x=>x.id===id);
+  if(cap)return {person:cap,listName:"기장"};
+  const fo=state.fos.find(x=>x.id===id);
+  if(fo)return {person:fo,listName:"부기장"};
+  return null;
 }
 
 function openEdit(id){
-  const p=[...state.captains,...state.fos].find(x=>x.id===id);
-  if(!p)return;
-  state.form={...p};state.formPhotoPreview=state.photos[id]||null;state.editId=id;state.modal="form";render();
+  const found=findPerson(id);
+  if(!found)return;
+  state.form={...normalizePerson(found.person)};
+  state.formPhotoPreview=state.photos[id]||null;
+  state.editId=id;
+  state.editList=found.listName;
+  state.modal="form";
+  render();
 }
 
 function openDelete(id){
@@ -633,35 +2760,44 @@ function openPromote(id){
 }
 
 async function saveForm(){
-  const f=state.form;
+  const f=normalizePerson(state.form);
   if(!f.name.trim()||!f.id.trim()){showToast("성명과 사번은 필수입니다.","err");return;}
+  if(!f.position.trim()) f.position=f.role;
+  const targetList=currentListName();
+
+  const dup=allCrew().find(p=>p.id===f.id && p.id!==state.editId);
+  if(dup){showToast("이미 존재하는 사번입니다.","err");return;}
 
   if(state.formPhotoPreview){
     state.photos[f.id]=state.formPhotoPreview;
-    savePhoto(f.id, state.formPhotoPreview);
+    savePhoto(f.id,state.formPhotoPreview);
+  }
+  if(state.editId && state.editId!==f.id && state.photos[state.editId]){
+    state.photos[f.id]=state.photos[state.editId];
+    savePhoto(f.id,state.photos[f.id]);
+    delete state.photos[state.editId];
+    deletePhoto(state.editId);
   }
 
   if(state.editId){
-    if(state.tab==="기장") state.captains=state.captains.map(p=>p.id===state.editId?{...f}:p);
-    else                   state.fos=state.fos.map(p=>p.id===state.editId?{...f}:p);
+    if(state.editList==="기장") state.captains=state.captains.map(p=>p.id===state.editId?f:p);
+    else state.fos=state.fos.map(p=>p.id===state.editId?f:p);
     showToast(`${f.name} 정보가 수정되었습니다.`);
   } else {
-    if([...state.captains,...state.fos].find(p=>p.id===f.id)){
-      showToast("이미 존재하는 사번입니다.","err");return;
-    }
-    if(state.tab==="기장") state.captains=[...state.captains,{...f}];
-    else                   state.fos=[...state.fos,{...f}];
+    if(targetList==="기장") state.captains=[...state.captains,f];
+    else state.fos=[...state.fos,f];
     showToast(`${f.name} 승무원이 추가되었습니다.`);
-
     try {
-      await addDoc(collection(db,"crew"),{...f, createdAt: new Date()});
-    } catch(err){
+      const api = await getFirebaseApi();
+      if(api) await api.addDoc(api.collection(api.db,"crew"),{...f, listName:targetList, createdAt:new Date()});
+    } catch(err) {
       console.error("Firebase 저장 실패:", err);
     }
   }
 
-  saveCrewData();   // ← 명단 변경 저장
+  saveCrewData();
   state.modal=null;
+  state.editList=null;
   render();
 }
 
@@ -669,10 +2805,10 @@ function doDelete(id){
   const p=getList().find(x=>x.id===id);
   if(!p)return;
   if(state.tab==="기장") state.captains=state.captains.filter(x=>x.id!==id);
-  else                   state.fos=state.fos.filter(x=>x.id!==id);
+  else state.fos=state.fos.filter(x=>x.id!==id);
   delete state.photos[id];
   deletePhoto(id);
-  saveCrewData();   // ← 명단 변경 저장
+  saveCrewData();
   showToast(`${p.name} 승무원이 퇴사 처리되었습니다.`,"warn");
   state.modal=null;state.confirmPerson=null;render();
 }
@@ -682,9 +2818,32 @@ function doPromote(id){
   if(!p)return;
   state.fos=state.fos.filter(x=>x.id!==id);
   state.captains=[...state.captains,{...p,role:"기장",position:"기장",appointDate:today()}];
-  saveCrewData();   // ← 명단 변경 저장
-  showToast(`${p.name} 기장으로 승격되었습니다!`);
+  saveCrewData();
+  showToast(`${p.name} 기장으로 승격되었습니다.`);
   state.modal=null;state.promotePerson=null;render();
+}
+
+function downloadExcel(){
+  const list=filteredAll();
+  const headers=["구분","성명","사번","직위","직위/직책 세부","입사일","임명일","생년월일","휴대폰","이메일","주소"];
+  const rows=list.map(p=>[
+    state.captains.some(x=>x.id===p.id)?"기장":"부기장",p.name,p.id,p.role,p.position,p.joinDate,p.appointDate,p.birthDate,p.phone,p.email,p.address
+  ]);
+  const table=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="utf-8"><style>td,th{mso-number-format:"\\@";border:.5pt solid #ddd;padding:6px}th{background:#f2f2f2;font-weight:700}</style></head>
+  <body><table><thead><tr>${headers.map(h=>`<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>
+  ${rows.map(row=>`<tr>${row.map(cell=>`<td>${escapeHtml(cell||"")}</td>`).join("")}</tr>`).join("")}
+  </tbody></table></body></html>`;
+  const blob=new Blob(["\ufeff",table],{type:"application/vnd.ms-excel;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`airpremia_crew_hr_${today()}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast("인사정보 Excel 파일을 다운로드했습니다.");
 }
 
 function doPrint(){
@@ -693,46 +2852,29 @@ function doPrint(){
   const t=new Date().toLocaleDateString("ko-KR");
   const rows=[];
   for(let i=0;i<list.length;i+=6)rows.push(list.slice(i,i+6));
-
   const photoCell=p=>{
     const src=state.photos[p.id];
     const m=ROLE_META[p.role]||ROLE_META["부기장"];
     if(src)return`<img src="${src}" style="width:78px;height:88px;object-fit:cover;border-radius:5px;display:block;margin:0 auto 5px"/>`;
-    return`<div style="width:78px;height:88px;border-radius:5px;background:${m.bg};border:1px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:500;color:${m.text};margin:0 auto 5px">${p.name[0]}</div>`;
+    return`<div style="width:78px;height:88px;border-radius:5px;background:${m.bg};border:1px solid ${m.border};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:500;color:${m.text};margin:0 auto 5px">${escapeHtml(p.name[0]||"?")}</div>`;
   };
-
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 @page{size:A4 landscape;margin:12mm}
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:9px;color:#111}
-h1{font-size:13px;font-weight:600;margin:0 0 3px}
-.sub{font-size:9px;color:#666;margin:0 0 10px}
-table{width:100%;border-collapse:collapse}
-td{vertical-align:top;padding:7px 5px;border:0.5px solid #ccc;text-align:center;width:16.6%}
-.name{font-size:12px;font-weight:600;margin:2px 0}
-.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:500;margin:2px 0 4px}
-.pos{font-size:8px;color:#555;margin:2px 0 5px;line-height:1.4}
-.meta{font-size:8px;color:#333;line-height:1.8;text-align:left;padding:0 4px}
-.meta span{color:#999}
+h1{font-size:13px;font-weight:600;margin:0 0 3px}.sub{font-size:9px;color:#666;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}td{vertical-align:top;padding:7px 5px;border:0.5px solid #ccc;text-align:center;width:16.6%}
+.name{font-size:12px;font-weight:600;margin:2px 0}.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:500;margin:2px 0 4px}
+.pos{font-size:8px;color:#555;margin:2px 0 5px;line-height:1.4}.meta{font-size:8px;color:#333;line-height:1.8;text-align:left;padding:0 4px}.meta span{color:#999}
 </style></head><body>
-<h1>■ 에어프레미아 운항승무원 명단 (${section})</h1>
-<div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${list.length}명</div>
-<table>
-${rows.map(row=>`<tr>${row.map(p=>{const m=ROLE_META[p.role]||ROLE_META["부기장"];return`<td>
-${photoCell(p)}
-<div class="name">${p.name}</div>
-<div class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${p.role}</div>
-<div class="pos">${p.position!==p.role?p.position:""}</div>
-<div class="meta"><span>사번</span> ${p.id}<br><span>입사</span> ${p.joinDate||"-"}<br><span>임명</span> ${p.appointDate||"-"}</div>
-</td>`;}).join("")}${row.length<6?`<td colspan="${6-row.length}" style="border:none"></td>`:""}</tr>`).join("")}
+<h1>■ 에어프레미아 운항승무원 명단 (${section})</h1><div class="sub">발행일: ${t} &nbsp;|&nbsp; 총 ${list.length}명</div><table>
+${rows.map(row=>`<tr>${row.map(p=>{const m=ROLE_META[p.role]||ROLE_META["부기장"];return`<td>${photoCell(p)}<div class="name">${escapeHtml(p.name)}</div><div class="badge" style="background:${m.bg};color:${m.text};border:0.5px solid ${m.border}">${escapeHtml(p.role)}</div><div class="pos">${p.position!==p.role?escapeHtml(p.position):""}</div><div class="meta"><span>사번</span> ${escapeHtml(p.id)}<br><span>입사</span> ${escapeHtml(p.joinDate||"-")}<br><span>임명</span> ${escapeHtml(p.appointDate||"-")}</div></td>`;}).join("")}${row.length<6?`<td colspan="${6-row.length}" style="border:none"></td>`:""}</tr>`).join("")}
 </table></body></html>`;
-
   const w=window.open("","_blank","width=1200,height=850");
   w.document.write(html);w.document.close();
   w.onload=()=>{setTimeout(()=>w.print(),300);};
 }
 
-// ========================= 전역 노출 =========================
+window.setView=setView;
 window.setTab=setTab;
 window.closeModal=closeModal;
 window.openAdd=openAdd;
@@ -743,11 +2885,11 @@ window.saveForm=saveForm;
 window.doDelete=doDelete;
 window.doPromote=doPromote;
 window.doPrint=doPrint;
+window.downloadExcel=downloadExcel;
 window.handleBulkPhotos=handleBulkPhotos;
 window.state=state;
 window.render=render;
 
-// 앱 시작 (사진은 이미 loadAllPhotos()로 동기 로딩 완료)
 render();
 </script>
 </body>
