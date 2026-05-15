@@ -2673,12 +2673,37 @@ function matchSearch(p){
   return !s || hay.includes(s);
 }
 
+function leaderPriority(p){
+  const pos=p.position||"";
+  if(pos.includes("본부장")) return 0;
+  if(pos.includes("팀장")) return 1;
+  if(pos.includes("파트장")) return 2;
+  return 9;
+}
+
+function leaderManualOrder(p){
+  const order={P263010:0,P203004:1};
+  return order[p.id] ?? 99;
+}
+
+function sortCrewPeople(list){
+  return [...list].sort((a,b)=>{
+    const pa=leaderPriority(a);
+    const pb=leaderPriority(b);
+    if(pa!==pb) return pa-pb;
+    const ma=leaderManualOrder(a);
+    const mb=leaderManualOrder(b);
+    if(ma!==mb) return ma-mb;
+    return (a.name||"").localeCompare(b.name||"","ko-KR");
+  });
+}
+
 function filtered(){
-  return getList().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole));
+  return sortCrewPeople(getList().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole)));
 }
 
 function filteredAll(){
-  return allCrew().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole));
+  return sortCrewPeople(allCrew().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole)));
 }
 
 function mkTopControls(){
