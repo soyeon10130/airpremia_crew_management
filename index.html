@@ -2835,6 +2835,23 @@ function mkConfirmModal(person,type){
   </div></div>`;
 }
 
+function renderResults(){
+  const list=filtered();
+  const resultsEl=document.getElementById("results-area");
+  if(!resultsEl){ render(); return; }
+  if(state.view==="photos"){
+    resultsEl.innerHTML=`
+      ${list.length===0?`<div style="grid-column:1/-1;padding:40px;text-align:center;color:#bbb;font-size:14px">검색 결과가 없습니다</div>`:""}
+      ${list.map(mkCard).join("")}
+    `;
+    document.querySelectorAll(".photo-wrap[data-photoid]").forEach(el=>{ el.onclick=()=>pickPhoto(el.dataset.photoid); });
+  } else {
+    resultsEl.outerHTML=mkHrTable();
+  }
+  const countEl=document.getElementById("results-count");
+  if(countEl) countEl.textContent=list.length+"명 표시";
+}
+
 function render(){
   const activeId=document.activeElement&&document.activeElement.id;
   const searchCursor=activeId==="search-inp" ? document.getElementById("search-inp").selectionStart : null;
@@ -2859,11 +2876,11 @@ function render(){
     </div>
     ${mkTopControls()}
     ${state.view==="photos"?`
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+      <div id="results-area" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
         ${list.length===0?`<div style="grid-column:1/-1;padding:40px;text-align:center;color:#bbb;font-size:14px">검색 결과가 없습니다</div>`:""}
         ${list.map(mkCard).join("")}
       </div>
-      <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right">${list.length}명 표시</div>
+      <div style="font-size:12px;color:#bbb;margin-top:10px;text-align:right"><span id="results-count">${list.length}명 표시</span></div>
     `:mkHrTable()}
     ${modalHtml}
     <div id="toast" style="display:none" class="toast"></div>
@@ -2873,12 +2890,18 @@ function render(){
 
   const searchInput=document.getElementById("search-inp");
   if(searchInput){
-    const updateSearch=e=>{
-      if(state.search===e.target.value) return;
-      state.search=e.target.value;
-      render();
-    };
-    searchInput.addEventListener("input",updateSearch);
+    if(!searchInput._searchBound){
+      searchInput._searchBound=true;
+      searchInput.addEventListener("compositionend",e=>{
+        state.search=e.target.value;
+        renderResults();
+      });
+      searchInput.addEventListener("input",e=>{
+        if(e.isComposing) return;
+        state.search=e.target.value;
+        renderResults();
+      });
+    }
     if(activeId==="search-inp"){
       searchInput.focus();
       const pos=Math.min(searchCursor ?? searchInput.value.length, searchInput.value.length);
