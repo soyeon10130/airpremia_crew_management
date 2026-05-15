@@ -2625,7 +2625,8 @@ function handlePhotoFallback(img){
 }
 
 function mkCard(p){
-  const canPromote=state.tab==="부기장"&&(p.role==="부기장"||p.role==="기장승격훈련요원");
+  const isFo=state.fos.some(x=>x.id===p.id);
+  const canPromote=isFo&&(p.role==="부기장"||p.role==="기장승격훈련요원");
   const posExtra=p.position&&p.position!==p.role ? `<div style="font-size:10px;color:#888;margin-top:3px;line-height:1.4">${escapeHtml(p.position)}</div>`:"";
   return `<div class="card">
     <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:10px">
@@ -2700,7 +2701,8 @@ function sortCrewPeople(list){
 }
 
 function filtered(){
-  return sortCrewPeople(getList().filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole)));
+  const base=state.search.trim()?allCrew():getList();
+  return sortCrewPeople(base.filter(p=>matchSearch(p) && (state.filterRole==="전체"||p.role===state.filterRole)));
 }
 
 function filteredAll(){
@@ -2871,10 +2873,13 @@ function render(){
 
   const searchInput=document.getElementById("search-inp");
   if(searchInput){
-    searchInput.addEventListener("input",e=>{
+    const updateSearch=e=>{
+      if(state.search===e.target.value) return;
       state.search=e.target.value;
       render();
-    });
+    };
+    searchInput.addEventListener("input",updateSearch);
+    searchInput.addEventListener("keyup",updateSearch);
     if(activeId==="search-inp"){
       searchInput.focus();
       const pos=Math.min(searchCursor ?? searchInput.value.length, searchInput.value.length);
@@ -3142,9 +3147,9 @@ function openEdit(id){
 }
 
 function openDelete(id){
-  const p=getList().find(x=>x.id===id);
-  if(!p)return;
-  state.confirmPerson=p;state.modal="delete";render();
+  const found=findPerson(id);
+  if(!found)return;
+  state.confirmPerson=found.person;state.modal="delete";render();
 }
 
 function openPromote(id){
@@ -3197,9 +3202,10 @@ async function saveForm(){
 }
 
 function doDelete(id){
-  const p=getList().find(x=>x.id===id);
-  if(!p)return;
-  if(state.tab==="기장") state.captains=state.captains.filter(x=>x.id!==id);
+  const found=findPerson(id);
+  if(!found)return;
+  const p=found.person;
+  if(found.listName==="기장") state.captains=state.captains.filter(x=>x.id!==id);
   else state.fos=state.fos.filter(x=>x.id!==id);
   delete state.photos[id];
   deletePhoto(id);
