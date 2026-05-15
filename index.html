@@ -85,10 +85,46 @@ async function getFirebaseApi(){
 
 const PHOTO_PREFIX = "crew_photo:";
 const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
-const CREW_DATA_VERSION = "260513-r2";
+const CREW_DATA_VERSION = "260513-r3";
 const CREW_VERSION_KEY = "crew_data_version";
 const PERSON_FIELDS = ["joinDate","birthDate","phone","email","address"];
-const UPGRADE_TRAINEE_IDS = ["P223001","P223002","P223011","P223013"];
+const INITIAL_UPGRADE_TRAINEE_IDS = ["P223002"];
+const PINNED_PROMOTED_CAPTAIN_IDS = ["P223001","P223011","P223013"];
+const APPOINT_DATE_BY_ID = {
+  P190001:"2021.06.07",P263010:"2021.04.29",P233022:"2023.06.30",P233025:"2023.07.28",P233024:"2023.06.16",
+  P243007:"2024.09.13",P213011:"2025.06.16",P243039:"2025.06.13",P243002:"2024.11.04",P243027:"2025.02.03",
+  P233011:"2023.07.24",P203008:"2020.09.25",P213001:"2022.11.26",P223006:"2023.03.03",P223005:"2023.04.07",
+  P243041:"2025.05.19",P203018:"2025.06.25",P213002:"2022.09.16",P233033:"2023.07.14",P243003:"2024.10.25",
+  P243004:"2024.09.20",P233012:"2023.06.12",P203006:"2020.09.27",P263011:"2023.09.25",P203015:"2025.07.02",
+  P243005:"2024.10.30",P203012:"2021.10.29",P203022:"2025.06.18",P243006:"2024.10.23",P233013:"2023.05.22",
+  P213003:"2022.07.08",P243042:"2025.04.30",P233014:"2023.08.11",P243028:"2025.01.31",P213004:"2023.02.03",
+  P233016:"2023.08.16",P243029:"2025.02.12",P213014:"2025.07.04",P233017:"2023.06.28",P213005:"2022.09.30",
+  P203007:"2020.09.26",P263009:"2023.08.18",P203019:"2025.07.17",P243030:"2025.02.07",P243031:"2025.03.18",
+  P233019:"2023.07.07",P193002:"2021.10.20",P233020:"2023.07.31",P203004:"2021.06.09",P243043:"2024.04.25",
+  P203001:"2021.10.14",P223007:"2023.04.20",P263012:"2024.09.09",P243020:"2024.08.12",P223008:"2023.03.27",
+  P213006:"2022.12.13",P243032:"2025.02.17",P203010:"2021.05.13",P243044:"2025.06.26",P233035:"2023.10.04",
+  P193001:"2021.09.17",P233023:"2023.06.19",P233036:"2023.09.22",P243045:"2024.12.27",P203002:"2021.09.30",
+  P243009:"2024.11.08",P243021:"2024.08.21",P243010:"2024.11.15",P243033:"2025.03.21",P243034:"2025.03.31",
+  P233037:"2023.09.20",P243046:"2025.05.23",P243035:"2024.04.02",P203011:"2022.02.23",P223009:"2023.03.31",
+  P243022:"2024.08.23",P213007:"2022.11.23",P263013:"2022.11.18",P213009:"2023.01.28",P203009:"2020.09.27",
+  P243047:"2025.01.03",P233026:"2023.06.23",P213010:"2022.08.11",
+  P223001:"2022.12.26",P223002:"2023.01.13",P223011:"2023.02.17",P223013:"2023.02.24",P203020:"2021.05.31",
+  P203021:"2021.10.15",P203013:"2022.03.11",P203014:"2022.03.18",P213012:"2022.07.01",P213013:"2022.07.22",
+  P223004:"2022.12.28",P223003:"2023.01.11",P223012:"2023.03.06",P223010:"2023.03.17",P233002:"2023.10.12",
+  P233003:"2023.10.23",P233005:"2023.10.10",P233006:"2023.10.19",P233007:"2023.10.17",P233010:"2023.07.05",
+  P233027:"2023.11.28",P233032:"2023.12.24",P233038:"2024.04.29",P233039:"2024.03.16",P233040:"2024.03.02",
+  P233041:"2024.03.13",P233042:"2024.05.19",P233043:"2024.05.03",P233044:"2024.04.06",P233045:"2024.06.24",
+  P233046:"2024.03.03",P233047:"2024.03.03",P233048:"2024.03.14",P233049:"2024.02.25",P243011:"2024.09.26",
+  P243012:"2024.11.19",P243013:"2024.12.07",P243014:"2024.10.30",P243015:"2024.09.06",P243016:"2024.11.24",
+  P243017:"2024.09.16",P243018:"2025.04.10",P243019:"2024.11.25",P243023:"2024.12.30",P243024:"2024.12.17",
+  P243025:"2024.12.28",P243026:"2024.12.26",P243036:"2025.05.12",P243037:"2025.04.04",P243038:"2025.04.05",
+  P243048:"2025.05.22",P243049:"2025.05.20",P243050:"2025.05.25",P243051:"2025.04.29",P243052:"2025.06.05",
+  P604002:"2025.06.04",P604105:"2025.06.15",P702330:"2025.06.01",P702816:"2025.06.08",P803303:"2025.05.27",
+  P803443:"2025.06.06",P803852:"2025.06.17",P900076:"2025.06.21",P900102:"2025.06.18",P701851:"2025.06.10",
+  P253002:"2025.10.10",P253003:"2025.09.24",P253004:"2025.09.29",P253005:"2025.10.01",P253006:"2025.09.23",
+  P253007:"2025.09.30",P253008:"2025.10.01",P253020:"2025.12.25",P253011:"2026.01.02",P253014:"2026.01.04",
+  P253017:"2026.01.09"
+};
 
 const ROLE_META={
   "기장":{bg:"#e6f1fb",text:"#0c447c",border:"#185fa5"},
@@ -2318,8 +2354,16 @@ function normalizePerson(p){
   };
 }
 
-function applyRoleOverrides(captains, fos){
-  const moveSet = new Set(UPGRADE_TRAINEE_IDS);
+function restoreAppointDates(list){
+  return list.map(p => {
+    if (p.appointDate || p.role === "수습부기장") return p;
+    const appointDate = APPOINT_DATE_BY_ID[p.id] || "";
+    return appointDate ? {...p, appointDate} : p;
+  });
+}
+
+function applyInitialRoleOverrides(captains, fos){
+  const moveSet = new Set(INITIAL_UPGRADE_TRAINEE_IDS);
   const trainees = captains
     .filter(p => moveSet.has(p.id))
     .map(p => ({...p, role:"기장승격훈련요원", position:"기장승격훈련요원"}));
@@ -2327,6 +2371,21 @@ function applyRoleOverrides(captains, fos){
     captains: captains.filter(p => !moveSet.has(p.id)),
     fos: [...trainees, ...fos.filter(p => !moveSet.has(p.id))],
   };
+}
+
+function applyPinnedCrewCorrections(captains, fos){
+  const all = [...captains, ...fos];
+  const promotedSet = new Set(PINNED_PROMOTED_CAPTAIN_IDS);
+  const uniqueById = list => [...new Map(list.map(p => [p.id, p])).values()];
+  const correctedCaptains = uniqueById(all
+    .filter(p => p.id !== "P223002" && (captains.some(c => c.id === p.id) || promotedSet.has(p.id)))
+    .map(p => promotedSet.has(p.id) ? {...p, role:"기장", position:"기장", appointDate:p.appointDate || today()} : p));
+  const correctedFos = uniqueById(all
+    .filter(p => p.id !== "P223002" && !correctedCaptains.some(c => c.id === p.id))
+    .map(p => promotedSet.has(p.id) ? {...p, role:"기장", position:"기장", appointDate:p.appointDate || today()} : p));
+  const kim = all.find(p => p.id === "P223002");
+  if(kim) correctedFos.unshift({...kim, role:"기장승격훈련요원", position:"기장승격훈련요원", appointDate:kim.appointDate || APPOINT_DATE_BY_ID.P223002 || ""});
+  return { captains: correctedCaptains, fos: correctedFos };
 }
 
 function savePhoto(id, dataUrl) {
@@ -2389,9 +2448,6 @@ function saveCrewData() {
 
 function loadCrewData() {
   try {
-    if (localStorage.getItem(CREW_VERSION_KEY) !== CREW_DATA_VERSION) {
-      return { captains: null, fos: null };
-    }
     const caps = localStorage.getItem(CREW_KEYS.captains);
     const fos = localStorage.getItem(CREW_KEYS.fos);
     return {
@@ -2405,13 +2461,16 @@ function loadCrewData() {
 }
 
 const saved = loadCrewData();
-const initialCrew = applyRoleOverrides(
-  (saved.captains || CAP_DATA).map(normalizePerson),
-  (saved.fos || FO_DATA).map(normalizePerson)
-);
+const hasSavedCrew = !!(saved.captains || saved.fos);
+const baseCaptains = restoreAppointDates((saved.captains || CAP_DATA).map(normalizePerson));
+const baseFos = restoreAppointDates((saved.fos || FO_DATA).map(normalizePerson));
+const initialCrew = hasSavedCrew
+  ? { captains: baseCaptains, fos: baseFos }
+  : applyInitialRoleOverrides(baseCaptains, baseFos);
+const correctedInitialCrew = applyPinnedCrewCorrections(initialCrew.captains, initialCrew.fos);
 let state={
-  captains:initialCrew.captains,
-  fos:initialCrew.fos,
+  captains:correctedInitialCrew.captains,
+  fos:correctedInitialCrew.fos,
   photos:loadAllPhotos(),
   view:"photos",
   tab:"기장",
