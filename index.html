@@ -84,6 +84,8 @@ async function getFirebaseApi(){
 }
 
 const PHOTO_PREFIX = "crew_photo:";
+const PHOTO_DB_NAME = "crew_photo_db";
+const PHOTO_STORE_NAME = "photos";
 const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
 const CREW_DATA_VERSION = "260513-r3";
 const CREW_VERSION_KEY = "crew_data_version";
@@ -2388,14 +2390,75 @@ function applyPinnedCrewCorrections(captains, fos){
   return { captains: correctedCaptains, fos: correctedFos };
 }
 
-function savePhoto(id, dataUrl) {
+async function savePhoto(id, dataUrl) {
+  let localOk=false;
   try {
     localStorage.setItem(PHOTO_PREFIX + id, dataUrl);
+    localOk=true;
+  } catch(e) {
+    console.warn("localStorage 사진 저장 실패:", id, e);
+  }
+  try {
+    await savePhotoDb(id, dataUrl);
     return true;
   } catch(e) {
-    console.warn("사진 저장 실패:", id, e);
-    return false;
+    console.warn("IndexedDB 사진 저장 실패:", id, e);
+    return localOk;
   }
+}
+
+function openPhotoDb(){
+  return new Promise((resolve,reject)=>{
+    if(!("indexedDB" in window)){reject(new Error("IndexedDB를 사용할 수 없습니다."));return;}
+    const req=indexedDB.open(PHOTO_DB_NAME,1);
+    req.onupgradeneeded=()=>req.result.createObjectStore(PHOTO_STORE_NAME);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+async function savePhotoDb(id,dataUrl){
+  const db=await openPhotoDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(PHOTO_STORE_NAME,"readwrite");
+    tx.objectStore(PHOTO_STORE_NAME).put(dataUrl,id);
+    tx.oncomplete=()=>{db.close();resolve(true);};
+    tx.onerror=()=>{db.close();reject(tx.error);};
+  });
+}
+
+async function loadAllPhotosDb(){
+  try {
+    const db=await openPhotoDb();
+    return await new Promise((resolve,reject)=>{
+      const photos={};
+      const tx=db.transaction(PHOTO_STORE_NAME,"readonly");
+      const store=tx.objectStore(PHOTO_STORE_NAME);
+      const req=store.openCursor();
+      req.onsuccess=()=>{
+        const cursor=req.result;
+        if(cursor){
+          photos[cursor.key]=cursor.value;
+          cursor.continue();
+        }
+      };
+      tx.oncomplete=()=>{db.close();resolve(photos);};
+      tx.onerror=()=>{db.close();reject(tx.error);};
+    });
+  } catch(e) {
+    console.warn("IndexedDB 사진 로딩 실패:", e);
+    return {};
+  }
+}
+
+async function clearPhotoDb(){
+  const db=await openPhotoDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(PHOTO_STORE_NAME,"readwrite");
+    tx.objectStore(PHOTO_STORE_NAME).clear();
+    tx.oncomplete=()=>{db.close();resolve(true);};
+    tx.onerror=()=>{db.close();reject(tx.error);};
+  });
 }
 
 function compressImageFile(file, maxWidth=420, maxHeight=520, quality=0.78){
@@ -2434,6 +2497,12 @@ function loadAllPhotos() {
 
 function deletePhoto(id) {
   try { localStorage.removeItem(PHOTO_PREFIX + id); } catch(e) {}
+  openPhotoDb().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(PHOTO_STORE_NAME,"readwrite");
+    tx.objectStore(PHOTO_STORE_NAME).delete(id);
+    tx.oncomplete=()=>{db.close();resolve(true);};
+    tx.onerror=()=>{db.close();reject(tx.error);};
+  })).catch(e=>console.warn("IndexedDB 사진 삭제 실패:", e));
 }
 
 function saveCrewData() {
@@ -2805,7 +2874,7 @@ function pickPhoto(id){
     const file=e.target.files[0];if(!file)return;
     try {
       const dataUrl=await compressImageFile(file);
-      const saved=savePhoto(id,dataUrl);
+      const saved=await savePhoto(id,dataUrl);
       if(!saved){showToast("브라우저 저장 공간이 부족해 사진을 저장하지 못했습니다.","err");return;}
       state.photos[id]=dataUrl;
       render();
@@ -2825,7 +2894,7 @@ function handleBulkPhotos(inp){
     const id=file.name.replace(/\.[^.]+$/,"").trim();
     try {
       const dataUrl=await compressImageFile(file);
-      if(savePhoto(id,dataUrl)){
+      if(await savePhoto(id,dataUrl)){
         state.photos[id]=dataUrl;
         done++;
       } else {
@@ -2847,6 +2916,7 @@ function handleBulkPhotos(inp){
 function clearAllPhotos(){
   if(!confirm("저장된 사진을 모두 삭제할까요? 인사정보는 삭제되지 않습니다.")) return;
   Object.keys(state.photos).forEach(id=>deletePhoto(id));
+  clearPhotoDb().catch(e=>console.warn("IndexedDB 사진 초기화 실패:", e));
   state.photos={};
   render();
   showToast("저장된 사진을 모두 삭제했습니다.","warn");
@@ -3052,12 +3122,12 @@ async function saveForm(){
   if(dup){showToast("이미 존재하는 사번입니다.","err");return;}
 
   if(state.formPhotoPreview){
-    if(savePhoto(f.id,state.formPhotoPreview)) state.photos[f.id]=state.formPhotoPreview;
+    if(await savePhoto(f.id,state.formPhotoPreview)) state.photos[f.id]=state.formPhotoPreview;
     else showToast("저장 공간 부족으로 사진은 저장되지 않았습니다.","warn");
   }
   if(state.editId && state.editId!==f.id && state.photos[state.editId]){
     state.photos[f.id]=state.photos[state.editId];
-    if(savePhoto(f.id,state.photos[f.id])){
+    if(await savePhoto(f.id,state.photos[f.id])){
       delete state.photos[state.editId];
       deletePhoto(state.editId);
     }
@@ -3178,6 +3248,11 @@ window.state=state;
 window.render=render;
 
 render();
+loadAllPhotosDb().then(dbPhotos=>{
+  const before=Object.keys(state.photos).length;
+  state.photos={...dbPhotos,...state.photos};
+  if(Object.keys(state.photos).length!==before) render();
+});
 </script>
 </body>
 </html>
