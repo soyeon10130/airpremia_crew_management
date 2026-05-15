@@ -2530,8 +2530,29 @@ function mkAvatar(name,role,size=76){
 
 function mkPhotoCell(p,size=76){
   const src=state.photos[p.id];
-  const inner=src ? `<img src="${src}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block"/>` : mkAvatar(p.name,p.role,size);
+  const fallbackSrc=`photos/${encodeURIComponent(p.id)}.jpg`;
+  const inner=src
+    ? `<img src="${src}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block"/>`
+    : `<img src="${fallbackSrc}" data-photo-fallback="0" data-name="${escapeHtml(p.name)}" data-role="${escapeHtml(p.role)}" data-size="${size}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;display:block" onerror="handlePhotoFallback(this)"/>`;
   return `<div class="photo-wrap" data-photoid="${escapeHtml(p.id)}" style="width:${size}px;height:${size}px" title="클릭하여 사진 변경">${inner}<div class="photo-overlay">사진</div></div>`;
+}
+
+function handlePhotoFallback(img){
+  const fallbacks=["jpg","jpeg","png","webp"];
+  const current=Number(img.dataset.photoFallback||"0");
+  const id=img.src.split("/").pop().split(".")[0];
+  const next=current+1;
+  if(next<fallbacks.length){
+    img.dataset.photoFallback=String(next);
+    img.src=`photos/${id}.${fallbacks[next]}`;
+    return;
+  }
+  const name=img.dataset.name||"";
+  const role=img.dataset.role||"부기장";
+  const size=Number(img.dataset.size||76);
+  const wrap=document.createElement("div");
+  wrap.innerHTML=mkAvatar(name,role,size);
+  img.replaceWith(wrap.firstElementChild);
 }
 
 function mkCard(p){
@@ -2563,7 +2584,12 @@ function mkStats(){
   const cnt={};
   Object.keys(ROLE_META).forEach(r=>cnt[r]=0);
   allCrew().forEach(p=>{if(cnt[p.role]!==undefined)cnt[p.role]++;});
+  const total=allCrew().length;
   return `<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:18px">
+    <div class="stat-card" style="background:#fff;border:0.5px solid #111">
+      <div style="font-size:10px;color:#555;font-weight:500;margin-bottom:3px">총원</div>
+      <div style="font-size:22px;font-weight:600;color:#111">${total}</div>
+    </div>
     ${Object.entries(ROLE_META).map(([r,m])=>`
       <div class="stat-card" style="background:${m.bg};border:0.5px solid ${m.border}">
         <div style="font-size:10px;color:${m.text};font-weight:500;margin-bottom:3px">${r}</div>
@@ -3000,6 +3026,7 @@ window.doPrint=doPrint;
 window.downloadExcel=downloadExcel;
 window.handleBulkPhotos=handleBulkPhotos;
 window.clearAllPhotos=clearAllPhotos;
+window.handlePhotoFallback=handlePhotoFallback;
 window.state=state;
 window.render=render;
 
