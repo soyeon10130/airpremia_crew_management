@@ -2879,7 +2879,6 @@ function render(){
       render();
     };
     searchInput.addEventListener("input",updateSearch);
-    searchInput.addEventListener("keyup",updateSearch);
     if(activeId==="search-inp"){
       searchInput.focus();
       const pos=Math.min(searchCursor ?? searchInput.value.length, searchInput.value.length);
