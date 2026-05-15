@@ -2668,8 +2668,9 @@ function mkStats(){
 }
 
 function matchSearch(p){
-  const s=state.search.trim().toLowerCase();
-  const hay=[p.name,p.id,p.role,p.position,p.joinDate,p.appointDate,p.birthDate,p.phone,p.email,p.address].join(" ").toLowerCase();
+  const normalize=v=>String(v??"").toLowerCase().replace(/\s+/g,"");
+  const s=normalize(state.search);
+  const hay=normalize([p.name,p.id,p.role,p.position,p.joinDate,p.appointDate,p.birthDate,p.phone,p.email,p.address].join(" "));
   return !s || hay.includes(s);
 }
 
@@ -2714,7 +2715,7 @@ function mkTopControls(){
       <button class="tab${state.tab==="기장"?" active":""}" onclick="setTab('기장')">기장 (${state.captains.length})</button>
       <button class="tab${state.tab==="부기장"?" active":""}" onclick="setTab('부기장')">부기장 (${state.fos.length})</button>
     </div>`:""}
-    <input type="text" id="search-inp" value="${escapeHtml(state.search)}" placeholder="이름·사번·직책·연락처 검색" style="flex:1;min-width:170px" oninput="state.search=this.value;render()"/>
+    <input type="text" id="search-inp" value="${escapeHtml(state.search)}" placeholder="이름·사번·직책·연락처 검색" style="flex:1;min-width:170px"/>
     <select onchange="state.filterRole=this.value;render()" style="width:150px">${roleOpts}</select>
     ${state.view==="photos"?`
       <button onclick="document.getElementById('bulk-photo-inp').click()" title="파일명=사번으로 일괄 업로드">사진 일괄</button>
@@ -2833,6 +2834,8 @@ function mkConfirmModal(person,type){
 }
 
 function render(){
+  const activeId=document.activeElement&&document.activeElement.id;
+  const searchCursor=activeId==="search-inp" ? document.getElementById("search-inp").selectionStart : null;
   const list=filtered();
   let modalHtml="";
   if(state.modal==="form") modalHtml=mkFormModal();
@@ -2865,6 +2868,19 @@ function render(){
   `;
 
   document.querySelectorAll(".photo-wrap[data-photoid]").forEach(el=>{ el.onclick=()=>pickPhoto(el.dataset.photoid); });
+
+  const searchInput=document.getElementById("search-inp");
+  if(searchInput){
+    searchInput.addEventListener("input",e=>{
+      state.search=e.target.value;
+      render();
+    });
+    if(activeId==="search-inp"){
+      searchInput.focus();
+      const pos=Math.min(searchCursor ?? searchInput.value.length, searchInput.value.length);
+      searchInput.setSelectionRange(pos,pos);
+    }
+  }
 
   if(state.modal==="form"){
     const photobtn=document.getElementById("modal-photo-btn");
