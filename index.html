@@ -2536,7 +2536,9 @@ const baseFos = restoreAppointDates((saved.fos || FO_DATA).map(normalizePerson))
 const initialCrew = hasSavedCrew
   ? { captains: baseCaptains, fos: baseFos }
   : applyInitialRoleOverrides(baseCaptains, baseFos);
-const correctedInitialCrew = applyPinnedCrewCorrections(initialCrew.captains, initialCrew.fos);
+const correctedInitialCrew = hasSavedCrew
+  ? { captains: baseCaptains, fos: baseFos }
+  : applyPinnedCrewCorrections(initialCrew.captains, initialCrew.fos);
 let state={
   captains:correctedInitialCrew.captains,
   fos:correctedInitialCrew.fos,
