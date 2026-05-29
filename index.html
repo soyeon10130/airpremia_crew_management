@@ -3194,7 +3194,7 @@ function parseHrRowsFromSheet(rows, fileName, sheetName){
     joinDate:findHeaderIndex(headers,["입사일","입사일자"]),
     birthDate:findHeaderIndex(headers,["생년월일"]),
     phone:findHeaderIndex(headers,["휴대폰번호","휴대폰","지원자 전화번호","전화번호"]),
-    email:findHeaderIndex(headers,["사내이메일","이메일"]),
+    email:findHeaderIndex(headers,["사내이메일","사내 메일주소","메일주소","이메일"]),
     address:findHeaderIndex(headers,["현거주주소","주소"]),
   };
   const defaults=inferDefaultImportRole(fileName,sheetName);
