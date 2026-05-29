@@ -75,6 +75,14 @@ async function getFirebaseApi(){
       db: fsMod.getFirestore(firebaseApp),
       collection: fsMod.collection,
       addDoc: fsMod.addDoc,
+      doc: fsMod.doc,
+      setDoc: fsMod.setDoc,
+      getDoc: fsMod.getDoc,
+      onSnapshot: fsMod.onSnapshot,
+      deleteDoc: fsMod.deleteDoc,
+      getDocs: fsMod.getDocs,
+      writeBatch: fsMod.writeBatch,
+      serverTimestamp: fsMod.serverTimestamp,
     };
   } catch(err) {
     console.warn("Firebase 초기화 실패:", err);
@@ -89,6 +97,10 @@ const PHOTO_STORE_NAME = "photos";
 const CREW_KEYS = { captains: "crew_captains", fos: "crew_fos" };
 const CREW_DATA_VERSION = "260513-r3";
 const CREW_VERSION_KEY = "crew_data_version";
+const CLOUD_CREW_COLLECTION = "sharedCrewState";
+const CLOUD_CREW_DOC_ID = "current";
+const CLOUD_PHOTO_COLLECTION = "sharedCrewPhotos";
+const SYNC_STATUS = { loading:"공유 데이터 확인 중", online:"공유 동기화됨", local:"로컬 저장 모드", saving:"공유 저장 중" };
 const PERSON_FIELDS = ["joinDate","birthDate","phone","email","address"];
 const INITIAL_UPGRADE_TRAINEE_IDS = ["P223002"];
 const PINNED_PROMOTED_CAPTAIN_IDS = ["P223001","P223011","P223013"];
@@ -2391,7 +2403,7 @@ function applyPinnedCrewCorrections(captains, fos){
 }
 
 async function savePhoto(id, dataUrl) {
-  let localOk=false;
+  let localOk=false, dbOk=false, cloudOk=false;
   try {
     localStorage.setItem(PHOTO_PREFIX + id, dataUrl);
     localOk=true;
@@ -2400,11 +2412,18 @@ async function savePhoto(id, dataUrl) {
   }
   try {
     await savePhotoDb(id, dataUrl);
-    return true;
+    dbOk=true;
   } catch(e) {
     console.warn("IndexedDB 사진 저장 실패:", id, e);
-    return localOk;
   }
+  try {
+    await savePhotoCloud(id, dataUrl);
+    cloudOk=true;
+  } catch(e) {
+    console.warn("Firebase 사진 저장 실패:", id, e);
+    showToast("사진은 이 브라우저에 저장됐지만 공유 저장은 실패했습니다.", "warn");
+  }
+  return localOk || dbOk || cloudOk;
 }
 
 function openPhotoDb(){
@@ -2503,6 +2522,7 @@ function deletePhoto(id) {
     tx.oncomplete=()=>{db.close();resolve(true);};
     tx.onerror=()=>{db.close();reject(tx.error);};
   })).catch(e=>console.warn("IndexedDB 사진 삭제 실패:", e));
+  deletePhotoCloud(id).catch(e=>console.warn("Firebase 사진 삭제 실패:", e));
 }
 
 function saveCrewData() {
@@ -2513,6 +2533,12 @@ function saveCrewData() {
   } catch(e) {
     showToast("저장 공간 부족으로 명단을 저장하지 못했습니다.", "err");
   }
+  persistCrewCloud().catch(e=>{
+    console.warn("Firebase 명단 저장 실패:", e);
+    state.syncStatus=SYNC_STATUS.local;
+    render();
+    showToast("명단은 이 브라우저에 저장됐지만 공유 저장은 실패했습니다.", "warn");
+  });
 }
 
 function loadCrewData() {
@@ -2528,6 +2554,121 @@ function loadCrewData() {
     return { captains: null, fos: null };
   }
 }
+function crewCloudRef(api){
+  return api.doc(api.db, CLOUD_CREW_COLLECTION, CLOUD_CREW_DOC_ID);
+}
+
+function photoCloudRef(api,id){
+  return api.doc(api.db, CLOUD_PHOTO_COLLECTION, id);
+}
+
+function setSyncStatus(status){
+  state.syncStatus=status;
+  const el=document.getElementById("sync-status");
+  if(el) el.textContent=status;
+}
+
+async function persistCrewCloud(){
+  const api=await getFirebaseApi();
+  if(!api) throw new Error("Firebase를 사용할 수 없습니다.");
+  setSyncStatus(SYNC_STATUS.saving);
+  await api.setDoc(crewCloudRef(api),{
+    captains: state.captains.map(normalizePerson),
+    fos: state.fos.map(normalizePerson),
+    version: CREW_DATA_VERSION,
+    updatedAt: api.serverTimestamp(),
+  },{merge:true});
+  setSyncStatus(SYNC_STATUS.online);
+}
+
+async function savePhotoCloud(id,dataUrl){
+  const api=await getFirebaseApi();
+  if(!api) throw new Error("Firebase를 사용할 수 없습니다.");
+  await api.setDoc(photoCloudRef(api,id),{dataUrl,updatedAt:api.serverTimestamp()},{merge:true});
+}
+
+async function deletePhotoCloud(id){
+  const api=await getFirebaseApi();
+  if(!api) return;
+  await api.deleteDoc(photoCloudRef(api,id));
+}
+
+async function clearPhotoCloud(){
+  const api=await getFirebaseApi();
+  if(!api) return;
+  const snap=await api.getDocs(api.collection(api.db,CLOUD_PHOTO_COLLECTION));
+  const batch=api.writeBatch(api.db);
+  snap.forEach(docSnap=>batch.delete(docSnap.ref));
+  await batch.commit();
+}
+
+function applyCloudCrewData(data){
+  if(!data) return;
+  const caps=Array.isArray(data.captains)?data.captains.map(normalizePerson):null;
+  const fos=Array.isArray(data.fos)?data.fos.map(normalizePerson):null;
+  if(!caps||!fos) return;
+  state.captains=restoreAppointDates(caps);
+  state.fos=restoreAppointDates(fos);
+  try {
+    localStorage.setItem(CREW_KEYS.captains, JSON.stringify(state.captains));
+    localStorage.setItem(CREW_KEYS.fos, JSON.stringify(state.fos));
+    localStorage.setItem(CREW_VERSION_KEY, data.version || CREW_DATA_VERSION);
+  } catch(e) {}
+  setSyncStatus(SYNC_STATUS.online);
+  render();
+}
+
+async function startCloudSync(){
+  setSyncStatus(SYNC_STATUS.loading);
+  const api=await getFirebaseApi();
+  if(!api){setSyncStatus(SYNC_STATUS.local);return;}
+
+  const crewRef=crewCloudRef(api);
+  try {
+    const initial=await api.getDoc(crewRef);
+    if(!initial.exists()) await persistCrewCloud();
+    else applyCloudCrewData(initial.data());
+  } catch(e) {
+    console.warn("Firebase 명단 초기 로딩 실패:", e);
+    setSyncStatus(SYNC_STATUS.local);
+    showToast("공유 데이터를 불러오지 못해 로컬 데이터로 표시합니다.", "warn");
+    return;
+  }
+
+  api.onSnapshot(crewRef, snap=>{
+    if(snap.exists()) applyCloudCrewData(snap.data());
+  }, err=>{
+    console.warn("Firebase 명단 실시간 동기화 실패:", err);
+    setSyncStatus(SYNC_STATUS.local);
+  });
+
+  api.onSnapshot(api.collection(api.db,CLOUD_PHOTO_COLLECTION), snap=>{
+    let changed=false;
+    snap.docChanges().forEach(change=>{
+      const id=change.doc.id;
+      if(change.type==="removed") {
+        if(state.photos[id]) { delete state.photos[id]; changed=true; }
+        try { localStorage.removeItem(PHOTO_PREFIX + id); } catch(e) {}
+      } else {
+        const data=change.doc.data();
+        if(data && data.dataUrl && state.photos[id]!==data.dataUrl) {
+          state.photos[id]=data.dataUrl;
+          try { localStorage.setItem(PHOTO_PREFIX + id, data.dataUrl); } catch(e) {}
+          savePhotoDb(id, data.dataUrl).catch(()=>{});
+          changed=true;
+        }
+      }
+    });
+    if(changed) render();
+  }, err=>console.warn("Firebase 사진 실시간 동기화 실패:", err));
+
+  const localPhotos=loadAllPhotos();
+  for(const [id,dataUrl] of Object.entries(localPhotos)){
+    if(!dataUrl) continue;
+    state.photos[id]=dataUrl;
+    savePhotoCloud(id,dataUrl).catch(e=>console.warn("로컬 사진 공유 반영 실패:", id, e));
+  }
+}
 
 const saved = loadCrewData();
 const hasSavedCrew = !!(saved.captains || saved.fos);
@@ -2536,9 +2677,7 @@ const baseFos = restoreAppointDates((saved.fos || FO_DATA).map(normalizePerson))
 const initialCrew = hasSavedCrew
   ? { captains: baseCaptains, fos: baseFos }
   : applyInitialRoleOverrides(baseCaptains, baseFos);
-const correctedInitialCrew = hasSavedCrew
-  ? { captains: baseCaptains, fos: baseFos }
-  : applyPinnedCrewCorrections(initialCrew.captains, initialCrew.fos);
+const correctedInitialCrew = applyPinnedCrewCorrections(initialCrew.captains, initialCrew.fos);
 let state={
   captains:correctedInitialCrew.captains,
   fos:correctedInitialCrew.fos,
@@ -2554,6 +2693,7 @@ let state={
   confirmPerson:null,
   promotePerson:null,
   formPhotoPreview:null,
+  syncStatus:SYNC_STATUS.loading,
 };
 
 let toastTimer=null;
@@ -2870,7 +3010,7 @@ function render(){
   document.getElementById("app").innerHTML=`
     <div style="margin-bottom:16px">
       <div style="font-size:20px;font-weight:500;margin-bottom:3px;color:#111">에어프레미아 운항승무원 인사 관리</div>
-      <div style="font-size:13px;color:#888">사진 명단은 기존 카드 정보 중심으로 유지 · 인사정보는 별도 표와 Excel 다운로드 제공 · ${photoInfo}</div>
+      <div style="font-size:13px;color:#888">사진 명단은 기존 카드 정보 중심으로 유지 · 인사정보는 별도 표와 Excel 다운로드 제공 · ${photoInfo} · <span id="sync-status">${escapeHtml(state.syncStatus||SYNC_STATUS.loading)}</span></div>
     </div>
     ${mkStats()}
     <div class="tabs main-tabs">
@@ -2988,6 +3128,7 @@ function clearAllPhotos(){
   if(!confirm("저장된 사진을 모두 삭제할까요? 인사정보는 삭제되지 않습니다.")) return;
   Object.keys(state.photos).forEach(id=>deletePhoto(id));
   clearPhotoDb().catch(e=>console.warn("IndexedDB 사진 초기화 실패:", e));
+  clearPhotoCloud().catch(e=>console.warn("Firebase 사진 초기화 실패:", e));
   state.photos={};
   render();
   showToast("저장된 사진을 모두 삭제했습니다.","warn");
@@ -3212,12 +3353,6 @@ async function saveForm(){
     if(targetList==="기장") state.captains=[...state.captains,f];
     else state.fos=[...state.fos,f];
     showToast(`${f.name} 승무원이 추가되었습니다.`);
-    try {
-      const api = await getFirebaseApi();
-      if(api) await api.addDoc(api.collection(api.db,"crew"),{...f, listName:targetList, createdAt:new Date()});
-    } catch(err) {
-      console.error("Firebase 저장 실패:", err);
-    }
   }
 
   saveCrewData();
@@ -3428,6 +3563,7 @@ window.state=state;
 window.render=render;
 
 render();
+startCloudSync();
 loadAllPhotosDb().then(dbPhotos=>{
   const before=Object.keys(state.photos).length;
   state.photos={...dbPhotos,...state.photos};
